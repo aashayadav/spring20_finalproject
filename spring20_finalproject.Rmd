@@ -20,3 +20,16 @@ theme_set(theme_minimal())
 d <- import(here("data", "2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df") 
 ```
 
+Final Project Components
+
+* No code is used repetitively (no more than twice) [10 points]
+* More than one variant of purrr::map is used [10 points]
+* At least one {purrr} function outside the basic map family (walk_*, reduce, modify_*, etc.) [10 points]
+* At least one instance of parallel iteration (e.g., map2_*, pmap_*) [10 points]
+* At least one use case of purrr::nest %>% mutate() [10 points]
+* At least two custom functions [20 points; 10 points each]
+  ** Each function must do exactly one thing
+  ** The functions may replicate the behavior of a base function - as noted above this is about practicing the skills you learn in class
+* Code is fully reproducible and housed on GitHub [10 points]
+* No obvious errors in chosen output format [10 points]
+* Deployed on the web and shareable through a link [10 points]
