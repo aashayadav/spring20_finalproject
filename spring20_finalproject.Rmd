@@ -18,6 +18,9 @@ theme_set(theme_minimal())
 ```{r}
 # importing the data
 d <- import(here("data", "2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df") 
+
+d <- d %>%
+  janitor::clean_names()
 ```
 
 Final Project Components
