@@ -11,17 +11,242 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(rio)
 library(here)
+library(naniar)
+library(colorblindr)
+library(plotly)
+library(tigris)
+library(geofacet)
+library(cowplot)
+library(ggrepel)
+library(ggalt)
 
 theme_set(theme_minimal())
 ```
 
 ```{r}
 # importing the data
-d <- import(here("data", "2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df") 
 
-d <- d %>%
-  janitor::clean_names()
+NCSH <- import(here("data","2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df")
+state <- import(here("data","fips_state.csv"))
+# Left_join to add states in the NCSH dataset
+
+final_data <- left_join(NCSH, state, by = "FIPSST")
+
+
 ```
+
+
+```{r}
+# Filtering data for under 5 year old children.
+data_under5 <- final_data %>%
+  select(State, SC_CSHCN, ACE2more_1718, SC_AGE_YEARS) %>%
+  filter(SC_AGE_YEARS <= 5)
+
+# Changing numeric variables to character
+
+data_under5$SC_CSHCN[which(data_under5$SC_CSHCN==1)]<- "Sp Health Needs"
+data_under5$SC_CSHCN[which(data_under5$SC_CSHCN==2)]<-"No Sp Health needs"
+
+data_under5$ACE2more_1718[which(data_under5$ACE2more_1718==1)]<-"Exp No ACE"
+data_under5$ACE2more_1718[which(data_under5$ACE2more_1718==2)]<-"Exp 1 ACE"
+data_under5$ACE2more_1718[which(data_under5$ACE2more_1718==3)]<-"Exp 2 ACE"
+
+# Removing missing data
+
+data_under5 <- data_under5 %>%
+  replace_with_na(replace = list(ACE2more_1718 = 99)) %>%
+  drop_na()
+
+# count adverse childhood experiences
+
+data_under5 <- data_under5 %>%
+  select(State, SC_CSHCN, ACE2more_1718) %>%
+  group_by(State, SC_CSHCN) %>%
+  count(ACE2more_1718)
+
+# percentage
+
+data_under5 <- data_under5 %>%
+  mutate(Percentage = (n/sum(n))*100)
+
+```
+
+
+```{r,  fig.height=9, fig.width=9}
+
+data_under5$region <- recode(data_under5$State,
+                              "California" = "West Coast",
+                              "Oregon" = "West Coast",
+                              "Alaska" = "West Coast",
+                              "Washington" = "West Coast")
+
+p1 <- data_under5 %>% 
+  group_by(State) %>% 
+  filter(region == "West Coast") %>% 
+  ungroup() %>% 
+ggplot(aes(fct_reorder(State, Percentage), Percentage)) +
+  geom_col(aes(fill = ACE2more_1718), position = "dodge") +
+  coord_flip() +
+  facet_wrap(~SC_CSHCN) +
+  theme(strip.text.x = element_text(size=8),
+        strip.background = element_rect(color = "black"),
+        legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        text = element_text(size = 8),
+        legend.title = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank()) +
+  theme(plot.title = element_text(hjust = 0.50)) +
+  scale_fill_brewer(palette = "Set2")
+
+data_under5$region <- recode(data_under5$State,
+                             "New York" = "East Coast",
+                             "New Jersey" = "East Coast",
+                             "Massachusetts" = "East Coast",
+                             "Pennsylvania" = "East Coast")
+
+p2 <- data_under5 %>% 
+  group_by(State) %>% 
+  filter(region == "East Coast") %>% 
+  ungroup() %>% 
+ggplot(aes(fct_reorder(State, Percentage), Percentage)) +
+  geom_col(aes(fill = ACE2more_1718), position = "dodge") +
+  coord_flip() +
+  facet_wrap(~SC_CSHCN) +
+  theme(strip.text.x = element_text(size=8),
+        strip.background = element_rect(color = "black"),
+        legend.position = "bottom",
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        text = element_text(size = 8),
+        legend.title = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank()) +
+  theme(plot.title = element_text(hjust = 0.10)) +
+  scale_fill_brewer(palette = "Set2")
+
+plot_row <- plot_grid(p1, p2, ncol=1, labels = c())
+
+title <- ggdraw() + 
+  draw_label(
+    "Children under 5 with special health needs likely to experience 1 or more adverse\n childhood experiences in East and West Coast (Data Source: NSCH 2016 & NSCH 2017)",
+    x = 0, hjust = 0) + 
+  theme(
+    plot.margin = margin(0, 0, 0, 7)
+    )
+  
+plot_grid(
+  title, plot_row,
+  ncol = 1,
+  rel_heights = c(0.1, 1)
+  )
+
+
+```
+
+```{r,fig.width=20, fig.height=15}
+
+ggplot(data_under5, aes(x = ACE2more_1718,
+                        y = Percentage,
+                        fill = SC_CSHCN)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  theme_bw() +
+  facet_geo(~State) +
+  theme_bw() +
+  theme(strip.text.x = element_text(size=15),
+        strip.background = element_rect(color = "black"),
+        axis.title.y = element_blank(),
+        text = element_text(size = 20),
+        legend.title = element_blank()) +
+  labs(title = "Children under 5 with special health needs likely to experience higher adverse childhood experiences",
+       caption = "Data Source: NSCH 2017-18 data") +
+  scale_fill_OkabeIto()
+
+```
+
+```{r, fig.height= 10, fig.width = 12}
+# Dataset for year 2017 and 2016
+# Joined dataset with FIPSST dataset
+
+NCSH_17_p2 <- NCSH%>%
+  select(FIPSST, SC_CSHCN, ACE2more_1718, SC_AGE_YEARS, ACEdivorce_1718, ACEdeath_1718, ACEjail_1718, ACEdomviol_1718, ACEneighviol_1718, ACEmhealth_1718, ACEdrug_1718 )%>%
+  filter(SC_AGE_YEARS <= 5, SC_CSHCN == 1, ACE2more_1718 == 1 ) %>%
+  rename(SC_CSHCN_1718 = "SC_CSHCN")
+
+NCSH_17_p2 <- left_join(NCSH_17_p2, state, by = "FIPSST")
+
+NCSH_17_p2 <- NCSH_17_p2 %>%
+  select(State, ACE2more_1718) %>%
+  group_by(State) %>%
+  count()%>%
+  rename(ACE_17 = "n")
+
+NCSH_16_p2 <- import(here("data","2016NSCHTopical_DRCv3_Sep2018.csv")) %>%
+  select(FIPSST, SC_CSHCN, ACE2more_16, SC_AGE_YEARS, ACEdivorce_16, ACEdeath_16, ACEjail_16, ACEdomviol_16, ACEneighviol_16, ACEmhealth_16, ACEdrug_16) %>%
+  filter(SC_AGE_YEARS <= 5, SC_CSHCN == 1, ACE2more_16 ==1) %>%
+  rename(SC_CSHCN_16 = SC_CSHCN)
+
+NCSH_16_p2 <- left_join(NCSH_16_p2, state, by = "FIPSST") %>%
+  select(State, ACE2more_16) %>%
+  group_by(State) %>%
+  count() %>%
+  rename(ACE_16 = "n")
+
+# Joined datased for 2017 and 2016 in one dataset and filtered state
+data_1618 <- full_join(NCSH_17_p2, NCSH_16_p2, by = "State") %>%
+  filter(State%in%c("Alaska", "Oregon", "Washington", "California", "New York", "New Jersey", "Massachusetts", "Pennsylvania"))
+
+# PLot to compare Advere childood experiences in children with special health needs from 2016 to 2017 in selected states
+
+library(scales)
+theme_set(theme_classic())
+
+colnames(data_1618) <- c("State", "ACE_16", "ACE_17")
+left_label <- paste(data_1618$State, round(data_1618$`ACE_16`),sep=", ")
+right_label <- paste(data_1618$State, round(data_1618$`ACE_17`),sep=", ")
+data_1618$class <- ifelse((data_1618$`ACE_17` - data_1618$`ACE_16`) < 0, "red", "green")
+
+# Plot
+
+p2 <- ggplot(data_1618) + geom_segment(aes(x=1, xend=2, y=`ACE_16`, yend=`ACE_17`,
+                                          col=class), size= 1, show.legend=F) + 
+  geom_vline(xintercept=1, linetype="dashed", size=.5) +
+  geom_vline(xintercept=2, linetype="dashed", size=.5) +
+  scale_color_manual(labels = c("Up", "Down"),
+                     values = c("green"="#00ba38", "red"="#f8766d")) +
+  labs(x="", y="Number of children", 
+       title = "Number of reported Sp Health needs children with Adverse Childhood Experiences (birth to 5) in\nEast Coast and West Coast\n") +
+  xlim(.5, 2.5) + ylim(0,(1.1*(max(data_1618$`ACE_16`, data_1618$`ACE_17`))))
+
+# Add texts
+p2 <- p2 + geom_text(label=left_label, y=data_1618$`ACE_16`, x=rep(1, NROW(df)), 
+                     hjust=1.1, size=5)
+p2 <- p2 + geom_text_repel(label=right_label, y=data_1618$`ACE_17`, x=rep(2, NROW(df)),
+                     hjust=-0.1, size=5)
+p2 <- p2 + geom_text(label="TIME 1 (2016)", x=1, y=1.1*(max(data_1618$`ACE_16`,
+                                                     data_1618$`ACE_17`)), 
+                     hjust=1.2, size=5)
+p2 <- p2 + geom_text(label="TIME 2 (2017)", x=2, y=1.1*(max(data_1618$`ACE_16`,
+                                                     data_1618$`ACE_17`)), 
+                     hjust=-0.1, size=5)  
+
+p2 + theme(panel.background = element_blank(), 
+           panel.grid = element_blank(),
+           axis.ticks = element_blank(),
+           axis.text.x = element_blank(),
+           panel.border = element_blank(),
+           axis.text.y = element_text(size = 10),
+           axis.title = element_text(size = 10),
+           plot.title = element_text(color = "black", size = 15, 
+                                     face = "bold", hjust = 0.5 ),
+           plot.margin = unit(c(2,4,2,4), "cm"))
+  
+
+```
+
+
 
 Final Project Components
 
