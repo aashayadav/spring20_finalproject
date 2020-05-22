@@ -44,7 +44,7 @@ data_under5 <- final_data %>%
 
 # Changing numeric variables to character
 
-data_under5$SC_CSHCN[which(data_under5$SC_CSHCN==1)]<- "Sp Health Needs"
+data_under5$SC_CSHCN[which(data_under5$SC_CSHCN==1)]<- "Sp Health Needs" # Make this a function (05.22.20)
 data_under5$SC_CSHCN[which(data_under5$SC_CSHCN==2)]<-"No Sp Health needs"
 
 data_under5$ACE2more_1718[which(data_under5$ACE2more_1718==1)]<-"Exp No ACE"
@@ -53,7 +53,7 @@ data_under5$ACE2more_1718[which(data_under5$ACE2more_1718==3)]<-"Exp 2 ACE"
 
 # Removing missing data
 
-data_under5 <- data_under5 %>%
+data_under5 <- data_under5 %>% # Make this a function (05.22.20)
   replace_with_na(replace = list(ACE2more_1718 = 99)) %>%
   drop_na()
 
@@ -66,7 +66,7 @@ data_under5 <- data_under5 %>%
 
 # percentage
 
-data_under5 <- data_under5 %>%
+data_under5 <- data_under5 %>% # Make this a function (05.22.20)
   mutate(Percentage = (n/sum(n))*100)
 
 ```
@@ -147,6 +147,7 @@ plot_grid(
 
 ```{r,fig.width=20, fig.height=15}
 
+# Use pmap to create more than 2 plots - try using nest() and mutate (05.22.20)
 ggplot(data_under5, aes(x = ACE2more_1718,
                         y = Percentage,
                         fill = SC_CSHCN)) +

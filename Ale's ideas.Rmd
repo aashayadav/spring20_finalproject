@@ -1,0 +1,78 @@
+---
+title: "Ale's ideas"
+author: "Alejandra Garcia Isaza"
+date: "5/21/2020"
+output: html_document
+---
+
+Some questions: https://www.childhealthdata.org/learn-about-the-nsch/topics_questions/2017-nsch-guide-to-topics-and-questions 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(rio)
+library(here)
+
+theme_set(theme_minimal())
+```
+
+```{r}
+NCSH <- import(here("data","2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df")
+
+state <- import(here("data","fips_state.csv"))
+
+# Left_join to add states in the NCSH dataset
+final_data <- left_join(NCSH, state, by = "FIPSST")
+```
+
+- About you and this child:
+DURING THE PAST WEEK, how many days did you or other family members read to this child? (K6Q60_R)
+DURING THE PAST WEEK, how many days did you or other family members tell stories or sing songs to this child? (K6Q61_R)
+How well do you think you are handling the day-to-day demands of raising children? (K8Q30)
+
+- For less than five y.o. children:
+How confident are you that this child is ready to be in school? (CONFIDENT)
+How often can this child recognize the beginning sound of a word? (RECOGBEGIN)
+About how many letters of the alphabet can this child recognize? (RECOGABC)
+
+- For children between 6-17 y.o. children:
+SINCE STARTING KINDERGARTEN, has this child repeated any grades? (REPEATED)
+DURING THE PAST 12 MONTHS, how often did you attend events or activities that this child participated in? (K7Q33)
+
+ - About Your Family and Household
+The next question is about whether you were able to afford the food you need. Which of these statements best describes the food situation in your household IN THE PAST 12 MONTHS? (FOODSIT)
+
+- Household information
+Think about your total combined family income IN THE LAST CALENDAR YEAR for all members of the family. What is that amount before taxes? (TOTINCOME)#
+
+Chosen:
+- About you and this child:
+DURING THE PAST WEEK, how many days did you or other family members read to this child? (K6Q60_R)
+ 
+ - For less than five y.o. children:
+How confident are you that this child is ready to be in school? (CONFIDENT)
+
+
+Poverty level of this household based on DHHS guidelines - Imputed (povlev4_1718)
+Poverty level of this household based on DHHS guidelines - Imputed recoded into 4 categories based on SCHIP qualification (povSCHIP_1718)
+
+explore to check if there is a trend between confidence and frequency of reading AND confidence and income () 
+lm(CONFIDENT ~ povlev4_1718 * K6Q60_R)
+
+get the names of each variables (labels for values)
+
+```{r}
+NCSH$FOODSIT
+NCSH$K6Q60_R 
+NCSH$SC_AGE_YEARS
+NCSH$povlev4_1718 # Poverty level of this household based on DHHS guidelines - Imputed
+NCSH$povSCHIP_1718 # Poverty level of this household based on DHHS guidelines - Imputed recoded into 4 categories based on SCHIP qualification
+```
+
+```{r}
+# this creates a list for each state with all the variables. 
+by_state <- split(final_data, final_data$State)
+
+```
+
