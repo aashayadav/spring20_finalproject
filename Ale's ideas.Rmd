@@ -147,12 +147,16 @@ d$a1_grade %>%
 
 # using nest to create list columns
 by_ed_level <- d %>%
-    nest(-a1_grade)
+  group_by(a1_grade) %>% 
+  nest()
 
 by_ed_level
 
 str(by_ed_level$data)
 ```
+
+
+
 ```{r}
 d2 <- by_ed_level %>%
     mutate(m1 = map(data, ~lm(confident ~ k6q60_r, data = .x)),
@@ -170,6 +174,9 @@ ggplot(d, aes(factor(k6q60_r), factor(confident))) +
 
 ```
 ```{r}
+ggplot(d, aes(a1_grade)) +
+  geom_histogram()
+
 # plot confidence vs. primary caregiver level of education
 
 ggplot(d, aes(factor(a1_grade), factor(confident))) +
@@ -179,7 +186,11 @@ ggplot(d, aes(factor(a1_grade), factor(confident))) +
 ```{r}
 # plot poverty level vs. how well dealing with day-to-day parenting demands
 
-ggplot(d, aes(factor(povlev4_1718), factor(k8q30))) +
-  geom_jitter(color = "gray70") 
+ggplot(d, aes(povlev4_1718, k8q30)) +
+  geom_col(color = "gray70") 
+
+# don't understand why k8q30 is counted like that. Is counting number of responses?
 ```
+
+
 
