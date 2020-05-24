@@ -162,11 +162,24 @@ d2$coefs[[9]]
 ```
 
 ```{r}
-# plot 
+# plot confidence vs. reading
 
 ggplot(d, aes(factor(k6q60_r), factor(confident))) +
   geom_jitter(color = "purple") +
   facet_wrap(~a1_grade)
 
+```
+```{r}
+# plot confidence vs. primary caregiver level of education
+
+ggplot(d, aes(factor(a1_grade), factor(confident))) +
+  geom_jitter(color = "blue") 
+```
+
+```{r}
+# plot poverty level vs. how well dealing with day-to-day parenting demands
+
+ggplot(d, aes(factor(povlev4_1718), factor(k8q30))) +
+  geom_jitter(color = "gray70") 
 ```
 
