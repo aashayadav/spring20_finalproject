@@ -26,53 +26,147 @@ state <- import(here("data","fips_state.csv"))
 final_data <- left_join(NCSH, state, by = "FIPSST")
 ```
 
-- About you and this child:
-DURING THE PAST WEEK, how many days did you or other family members read to this child? (K6Q60_R)
-DURING THE PAST WEEK, how many days did you or other family members tell stories or sing songs to this child? (K6Q61_R)
-How well do you think you are handling the day-to-day demands of raising children? (K8Q30)
+```{r}
+# data prep
 
-- For less than five y.o. children:
-How confident are you that this child is ready to be in school? (CONFIDENT)
-How often can this child recognize the beginning sound of a word? (RECOGBEGIN)
-About how many letters of the alphabet can this child recognize? (RECOGABC)
+selected_data <- final_data %>%
+  select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
+  janitor::clean_names() %>% # cleaning names
+  filter(sc_age_years == 5) # filtering for 5 years old
+```
 
-- For children between 6-17 y.o. children:
-SINCE STARTING KINDERGARTEN, has this child repeated any grades? (REPEATED)
-DURING THE PAST 12 MONTHS, how often did you attend events or activities that this child participated in? (K7Q33)
+values of missing data:
 
- - About Your Family and Household
-The next question is about whether you were able to afford the food you need. Which of these statements best describes the food situation in your household IN THE PAST 12 MONTHS? (FOODSIT)
-
-- Household information
-Think about your total combined family income IN THE LAST CALENDAR YEAR for all members of the family. What is that amount before taxes? (TOTINCOME)#
-
-Chosen:
-- About you and this child:
-DURING THE PAST WEEK, how many days did you or other family members read to this child? (K6Q60_R)
- 
- - For less than five y.o. children:
-How confident are you that this child is ready to be in school? (CONFIDENT)
-
-
-Poverty level of this household based on DHHS guidelines - Imputed (povlev4_1718)
-Poverty level of this household based on DHHS guidelines - Imputed recoded into 4 categories based on SCHIP qualification (povSCHIP_1718)
-
-explore to check if there is a trend between confidence and frequency of reading AND confidence and income () 
-lm(CONFIDENT ~ povlev4_1718 * K6Q60_R)
-
-get the names of each variables (labels for values)
+a2_grade # this one has missing data as 95 and 99
+foodsit # this one has missing data as 99
+k6q60_r # this one has missing data as 90
+wrkng_poor_1718 # this one has missing data as 99
 
 ```{r}
-NCSH$FOODSIT
-NCSH$K6Q60_R 
-NCSH$SC_AGE_YEARS
-NCSH$povlev4_1718 # Poverty level of this household based on DHHS guidelines - Imputed
-NCSH$povSCHIP_1718 # Poverty level of this household based on DHHS guidelines - Imputed recoded into 4 categories based on SCHIP qualification
+# creating a function to recode missing data
+
+# vector with missing values in my dataset
+missing_vals <- c(90, 95, 99)
+
+# function that returns true if values in vector are equal to missing_vals. The function takes a vector x, and specified values of missing data
+recode_missing <- function(x, missing_vals = c(90, 95, 99)) {
+  test <- x %in% missing_vals
+  ifelse(test, NA, x)
+}
+
+# function that recodes missing values to NA. The function takes a dataframe with variables with missing data, and specified values of missing data
+recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
+  modify(df, ~recode_missing(.x, missing_vals)) # here uses the function created above
+}
+
+d <- recode_missing_df(selected_data) %>%
+  drop_na() # dropping cases with missing data
+```
+
+* SELECTED QUESTIONS *
+ 
+
+1. DURING THE PAST WEEK, how many days did you or other family members tell stories or sing songs to this child? (k6q61_r)
+
+0 days
+1-3 days
+4-6 days
+Every day
+
+```{r}
+d$k6q61_r %>%
+  range()
+```
+
+2. DURING THE PAST WEEK, how many days did you or other family members read to this child? (k6q60_r)
+
+0 days
+1-3 days
+4-6 days
+Every day
+
+```{r}
+d$k6q60_r %>%
+  range()
+```
+
+3. How confident are you that this child is ready to be in school? (confident)
+
+Completely confident
+Mostly confident
+Somewhat confident
+Not at all confident
+
+```{r}
+d$confident  %>%
+  range()
+```
+
+4. How well do you think you are handling the day-to-day demands of raising children? (k8q30)
+
+Very well
+Somewhat well
+Not very well
+Not at all
+
+```{r}
+d$k8q30 %>%
+  range()
+```
+
+5. Poverty level of this household based on DHHS guidelines - Imputed
+
+note: I couldn't find the labels for the responses
+
+```{r}
+d$povlev4_1718 %>%
+  range()
+```
+
+6. What is the highest grade or level of school you have completed? Mark (X) ONE box. (a1_grade)
+note: this is adult 1 or primary caregiver. 
+
+8th grade or less
+9th-12th grade; No diploma
+High School Graduate or GED Completed
+Completed a vocational, trade, or business school program
+Some College Credit, but no Degree
+Associate Degree (AA, AS)
+Bachelor’s Degree (BA, BS, AB)
+Master’s Degree (MA, MS, MSW, MBA)
+Doctorate (PhD, EdD)
+
+```{r}
+d$a1_grade %>%
+  range()
 ```
 
 ```{r}
-# this creates a list for each state with all the variables. 
-by_state <- split(final_data, final_data$State)
+# creating a list for each education level with all the variables - base way:
+# by_ed_level <- split(d, d$a1_grade)
+
+# using nest to create list columns
+by_ed_level <- d %>%
+    nest(-a1_grade)
+
+by_ed_level
+
+str(by_ed_level$data)
+```
+```{r}
+d2 <- by_ed_level %>%
+    mutate(m1 = map(data, ~lm(confident ~ k6q60_r, data = .x)),
+           coefs = map(m1, coef))
+
+d2$coefs[[9]]
+```
+
+```{r}
+# plot 
+
+ggplot(d, aes(factor(k6q60_r), factor(confident))) +
+  geom_jitter(color = "purple") +
+  facet_wrap(~a1_grade)
 
 ```
 
