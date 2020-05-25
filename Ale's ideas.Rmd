@@ -111,9 +111,20 @@ d <- recode_missing_df(selected_data) %>%
                            "Associate Degree" = "6",
                            "Bachelor’s Degree" = "7",
                            "Master’s Degree" = "8",
-                           "Doctorate" = "9")) %>%
-  select(1:4, stories_songs, read, confident, how_well_demands, primary_cg_ed)
+                           "Doctorate" = "9"),
+         home_language = factor(hhlanguage),
+         home_language = fct_recode(home_language,
+                          "English" = "1",
+                          "Spanish" = "2",
+                          "Other" = "3"),
+         child_sex = factor(sc_sex),
+         child_sex = fct_recode(child_sex,
+                          "Male" = "1",
+                          "Female" = "2"),
+         child_age = sc_age_years) %>%
+  select(hhid, child_sex, child_age, home_language, stories_songs, read, confident, how_well_demands, primary_cg_ed, state)
 ```
+
 
 ```{r}
 # creating a list for each education level with all the variables - base way:
