@@ -90,6 +90,8 @@ d$k6q60_r %>%
   range()
 ```
 
+TO DO: function to recode answers from questions 1 and 2 (that have same options) 
+
 3. How confident are you that this child is ready to be in school? (confident)
 
 Completely confident
@@ -150,7 +152,7 @@ by_ed_level <- d %>%
   group_by(a1_grade) %>% 
   nest()
 
-by_ed_level
+by_ed_level 
 
 str(by_ed_level$data)
 ```
