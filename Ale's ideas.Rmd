@@ -58,89 +58,61 @@ recode_missing <- function(x, missing_vals = c(90, 95, 99)) {
 recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
   modify(df, ~recode_missing(.x, missing_vals)) # here uses the function created above
 }
-
-d <- recode_missing_df(selected_data) %>%
-  drop_na() # dropping cases with missing data
 ```
 
 * SELECTED QUESTIONS *
- 
 
-1. DURING THE PAST WEEK, how many days did you or other family members tell stories or sing songs to this child? (k6q61_r)
+1. DURING THE PAST WEEK, how many days did you or other family members tell stories or sing songs to this child? (stories_songs)
 
-0 days
-1-3 days
-4-6 days
-Every day
-
-```{r}
-d$k6q61_r %>%
-  range()
-```
-
-2. DURING THE PAST WEEK, how many days did you or other family members read to this child? (k6q60_r)
-
-0 days
-1-3 days
-4-6 days
-Every day
-
-```{r}
-d$k6q60_r %>%
-  range()
-```
-
-TO DO: function to recode answers from questions 1 and 2 (that have same options) 
+2. DURING THE PAST WEEK, how many days did you or other family members read to this child? (read)
 
 3. How confident are you that this child is ready to be in school? (confident)
 
-Completely confident
-Mostly confident
-Somewhat confident
-Not at all confident
+4. How well do you think you are handling the day-to-day demands of raising children? (how_well_demands)
+
+5. What is the highest grade or level of school you have completed? Mark (X) ONE box. (primary_cg_ed)
 
 ```{r}
-d$confident  %>%
-  range()
-```
+# more data cleaning
 
-4. How well do you think you are handling the day-to-day demands of raising children? (k8q30)
-
-Very well
-Somewhat well
-Not very well
-Not at all
-
-```{r}
-d$k8q30 %>%
-  range()
-```
-
-5. Poverty level of this household based on DHHS guidelines - Imputed
-
-note: I couldn't find the labels for the responses
-
-```{r}
-d$povlev4_1718 %>%
-  range()
-```
-
-6. What is the highest grade or level of school you have completed? Mark (X) ONE box. (a1_grade)
-note: this is adult 1 or primary caregiver. 
-
-8th grade or less
-9th-12th grade; No diploma
-High School Graduate or GED Completed
-Completed a vocational, trade, or business school program
-Some College Credit, but no Degree
-Associate Degree (AA, AS)
-Bachelor’s Degree (BA, BS, AB)
-Master’s Degree (MA, MS, MSW, MBA)
-Doctorate (PhD, EdD)
-
-```{r}
-d$a1_grade %>%
-  range()
+d <- recode_missing_df(selected_data) %>%
+  drop_na() %>% # dropping cases with missing data
+  mutate(stories_songs = factor(k6q61_r),
+         stories_songs = fct_recode(stories_songs,
+                           "0 days" = "1",
+                           "1-3 days" = "2",
+                           "4-6 days" = "3",
+                           "Every day" = "4"),
+         read = factor(k6q60_r),
+         read = fct_recode(read,
+                           "0 days" = "1",
+                           "1-3 days" = "2",
+                           "4-6 days" = "3",
+                           "Every day" = "4"),
+         confident = factor(confident),
+         confident = fct_recode(confident,
+                           "Completely confident" = "1",
+                           "Mostly confident" = "2",
+                           "Somewhat confident" = "3",
+                           "Not at all confident" = "4"),
+         how_well_demands = factor(k8q30),
+         how_well_demands = fct_recode(how_well_demands,
+                           "Very well" = "1",
+                           "Somewhat well" = "2",
+                           "Not very well" = "3",
+                           "Not at all" = "4"),
+         primary_cg_ed = factor(a1_grade),
+         primary_cg_ed = fct_recode(primary_cg_ed,
+                           "8th grade or less" = "1",
+                           "9th-12th grade; No diploma" = "2",
+                           "High School Graduate or GED" = "3",
+                           "Vocational, trade, or business school program" = "4",
+                           "Some College Credit, no Degree" = "5",
+                           "Associate Degree" = "6",
+                           "Bachelor’s Degree" = "7",
+                           "Master’s Degree" = "8",
+                           "Doctorate" = "9")) %>%
+  select(1:4, stories_songs, read, confident, how_well_demands, primary_cg_ed)
 ```
 
 ```{r}
@@ -149,7 +121,7 @@ d$a1_grade %>%
 
 # using nest to create list columns
 by_ed_level <- d %>%
-  group_by(a1_grade) %>% 
+  group_by(primary_cg_ed) %>% 
   nest()
 
 by_ed_level 
@@ -158,41 +130,28 @@ str(by_ed_level$data)
 ```
 
 
-
-```{r}
-d2 <- by_ed_level %>%
-    mutate(m1 = map(data, ~lm(confident ~ k6q60_r, data = .x)),
-           coefs = map(m1, coef))
-
-d2$coefs[[9]]
-```
-
 ```{r}
 # plot confidence vs. reading
 
-ggplot(d, aes(factor(k6q60_r), factor(confident))) +
-  geom_jitter(color = "purple") +
-  facet_wrap(~a1_grade)
-
+ggplot(d, aes(read, confident)) +
+  geom_jitter(color = "cornflowerblue") +
+  facet_wrap(~primary_cg_ed)
 ```
-```{r}
-ggplot(d, aes(a1_grade)) +
-  geom_histogram()
 
+```{r}
 # plot confidence vs. primary caregiver level of education
 
-ggplot(d, aes(factor(a1_grade), factor(confident))) +
-  geom_jitter(color = "blue") 
+ggplot(d, aes(primary_cg_ed, confident)) +
+  geom_jitter(color = "blue") +
+  coord_flip()
 ```
 
 ```{r}
-# plot poverty level vs. how well dealing with day-to-day parenting demands
+# plot reading vs. primary caregiver level of education
 
-ggplot(d, aes(povlev4_1718, k8q30)) +
-  geom_col(color = "gray70") 
-
-# don't understand why k8q30 is counted like that. Is counting number of responses?
+ggplot(d, aes(primary_cg_ed, read)) +
+  geom_jitter(color = "#9516A1") +
+  coord_flip()
 ```
-
 
 
