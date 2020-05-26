@@ -21,6 +21,7 @@ library(ggrepel)
 library(ggalt)
 
 theme_set(theme_minimal())
+
 ```
 
 ```{r}
@@ -262,3 +263,206 @@ Final Project Components
 * Code is fully reproducible and housed on GitHub [10 points]
 * No obvious errors in chosen output format [10 points]
 * Deployed on the web and shareable through a link [10 points]
+
+
+```{r}
+
+# 1 custom function on missing data, nest, mutate and map2 to produce plot for 51 states (by Asha)
+
+selected_data <- final_data %>%
+  select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
+  janitor::clean_names() %>% # cleaning names
+  filter(sc_age_years <= 5) # filtering for 5 years old
+
+selected_data1 <-selected_data %>%
+  select(state, ace2more_1718)
+
+# creating a function to recode missing data
+
+# vector with missing values in my dataset
+missing_vals <- c(90, 95, 99)
+
+# function that returns true if values in vector are equal to missing_vals. The function takes a vector x, and specified values of missing data
+recode_missing <- function(x, missing_vals = c(90, 95, 99)) {
+  test <- x %in% missing_vals
+  ifelse(test, NA, x)
+}
+
+# function that recodes missing values to NA. The function takes a dataframe with variables with missing data, and specified values of missing data
+recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
+  modify(df, ~recode_missing(.x, missing_vals)) # here uses the function created above
+}
+
+selected_data1 <- recode_missing_df(selected_data1) %>%
+  drop_na() # dropping cases with missing data
+
+selected_data1$ace2more_1718[which(selected_data1$ace2more_1718==1)]<-"Exp No ACE"
+selected_data1$ace2more_1718[which(selected_data1$ace2more_1718==2)]<-"Exp 1 ACE"
+selected_data1$ace2more_1718[which(selected_data1$ace2more_1718==3)]<-"Exp 2 ACE"
+
+selected_data1 <- selected_data1 %>%
+  group_by(state, ace2more_1718) %>%
+  count(ace2more_1718)
+
+
+#Plot for one state
+
+selected_data1 %>%
+  filter(state == "Alabama")
+
+ggplot(selected_data1, aes(ace2more_1718, n)) +
+  geom_col(aes(fill = n)) +
+  scale_fill_distiller(type = "seq",
+                       limits = c(0, max(selected_data1$n)),
+                       palette = "BuPu",
+                       direction = 1) +
+  ylim(0, max(selected_data1$n)) +
+  coord_flip() +
+  labs(title = "Number of Adverse Childhood Experiences: Alabama",
+       x = "Adverse Childhood Exp.")
+
+#Nest data and mutate
+
+selected_data1 %>%
+  group_by(state) %>%
+  nest() %>%
+  mutate(plot = map(data, ~
+                      ggplot(.x, aes(ace2more_1718, n)) +
+                      geom_col(aes(fill = n)) +
+                      scale_fill_distiller(type = "seq",
+                                           limits = c(0, max(selected_data1$n)),
+                                           palette = "BuPu",
+                                           direction = 1) +
+                      ylim(0, max(selected_data1$n)) +
+                      coord_flip() +
+                      labs(title = "Adverse Childhood Experiences")
+                    )
+         )
+
+# Plot for all states
+library(glue)
+
+P <- selected_data1 %>%
+  group_by(state) %>%
+  nest() %>%
+  mutate(plot = map2(data, state, ~
+                       ggplot(.x, aes(ace2more_1718, n)) +
+                       geom_col(aes(fill = n)) +
+                       scale_fill_distiller(type = "seq",
+                                            limits = c(0, max(selected_data1$n)),
+                                            palette = "BuPu",
+                                            direction = 1) +
+                       ylim(0, max(selected_data1$n)) +
+                       coord_flip() +
+                       labs(title = glue("Adverse Childhood Exp : {.y}"))
+                       )
+         )
+P
+
+P$plot[[10]]
+```
+
+```{r}
+
+# 1 custom function on missing data, nest, mutate and pmap to produce plot for 51 states (by Asha)
+
+selected_data <- final_data %>%
+  select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
+  janitor::clean_names() %>% # cleaning names
+  filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering for 5 years old
+
+selected_data1 <-selected_data %>%
+  select(state, ace2more_1718)
+
+# creating a function to recode missing data
+
+# vector with missing values in my dataset
+missing_vals <- c(90, 95, 99)
+
+# function that returns true if values in vector are equal to missing_vals. The function takes a vector x, and specified values of missing data
+recode_missing <- function(x, missing_vals = c(90, 95, 99)) {
+  test <- x %in% missing_vals
+  ifelse(test, NA, x)
+}
+
+# function that recodes missing values to NA. The function takes a dataframe with variables with missing data, and specified values of missing data
+recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
+  modify(df, ~recode_missing(.x, missing_vals)) # here uses the function created above
+}
+
+selected_data1 <- recode_missing_df(selected_data1) %>%
+  drop_na() # dropping cases with missing data
+
+
+selected_data1$ace2more_1718[which(selected_data1$ace2more_1718==2)]<-"Exp 1 ACE"
+selected_data1$ace2more_1718[which(selected_data1$ace2more_1718==3)]<-"Exp 2 ACE"
+
+
+selected_data1 <- selected_data1 %>%
+  group_by(state, ace2more_1718) %>%
+  count(ace2more_1718)
+
+selected_data1 <- selected_data1 %>%
+  group_by(state) %>%
+  mutate(tot = sum(n))
+
+# Creating a column for label
+
+library(english)
+selected_data1 <- selected_data1 %>%
+  mutate(label =
+  glue("{str_to_title(as.english(tot))} Children experienced ACE"))
+
+
+# Plot for one state
+
+selected_data1 %>%
+  filter(state == "Alabama")
+
+ggplot(selected_data1, aes(ace2more_1718, n)) +
+  geom_col(aes(fill = n)) +
+  scale_fill_distiller(type = "seq",
+                       limits = c(0, max(selected_data1$n)),
+                       palette = "BuPu",
+                       direction = 1) +
+  ylim(0, max(selected_data1$n)) +
+  coord_flip() +
+  labs(title = "Number of children experienced ACE : Alabama",
+       x = "Adverse Childhood Experience",
+       y = "Number of children under 5s",
+       caption = unique(selected_data1$label))
+
+#Produce plots for 51 states using pmap
+final_plots <- selected_data1 %>%
+  group_by(state, label) %>%
+  nest() %>%
+  mutate(plots = pmap(list(state, label, data),
+                      ~ggplot(..3, aes(ace2more_1718, n)) +
+                        geom_col(aes(fill = n)) +
+                        scale_fill_distiller(type = "seq",
+                                             limits = c(0, max(selected_data1$n)),
+                                             palette = "BuPu",
+                                             direction = 1) +
+                        ylim(0, max(selected_data1$n)) +
+                        coord_flip() +
+                        labs(title = glue("Number of children experienced ACE : {..1}"),
+                             x = "Adverse Childhood Exp",
+                             y = "Number of Children",
+                             caption = ..2)))
+final_plots$plots[[5]]
+# Create directory to save plots
+
+fs::dir_create(here::here("plots", "selected_data1"))
+
+# Create file path
+files <- str_replace_all(tolower(final_plots$state), " ", "-")
+paths <- here::here("plots", "selected_data1", glue("{files}.png"))
+paths
+
+#save plots
+walk2(paths, final_plots$plots, ggsave,
+      width = 9.5, 
+      height = 6.5,
+      dpi = 500)
+```
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
