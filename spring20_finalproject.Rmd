@@ -19,6 +19,7 @@ library(geofacet)
 library(cowplot)
 library(ggrepel)
 library(ggalt)
+library(forcats)
 
 theme_set(theme_minimal())
 
@@ -267,12 +268,12 @@ Final Project Components
 
 ```{r}
 
-# 1 custom function on missing data, nest, mutate and map2 to produce plot for 51 states (by Asha)
+# 1 custom function on missing data (by Ale), nest, mutate and map2 to produce plot for 51 states (by Asha)
 
 selected_data <- final_data %>%
   select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
   janitor::clean_names() %>% # cleaning names
-  filter(sc_age_years <= 5) # filtering for 5 years old
+  filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering for 5 years old
 
 selected_data1 <-selected_data %>%
   select(state, ace2more_1718)
@@ -294,15 +295,15 @@ recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
 }
 
 selected_data1 <- recode_missing_df(selected_data1) %>%
-  drop_na() # dropping cases with missing data
-
-selected_data1$ace2more_1718[which(selected_data1$ace2more_1718==1)]<-"Exp No ACE"
-selected_data1$ace2more_1718[which(selected_data1$ace2more_1718==2)]<-"Exp 1 ACE"
-selected_data1$ace2more_1718[which(selected_data1$ace2more_1718==3)]<-"Exp 2 ACE"
+  drop_na() %>%
+  mutate(ACE = factor(ace2more_1718),
+         ACE = recode_factor(ACE,
+                          "2" = "Exp 1 ACE",
+                          "3" = "Exp 2 Ace"))
 
 selected_data1 <- selected_data1 %>%
-  group_by(state, ace2more_1718) %>%
-  count(ace2more_1718)
+  group_by(state, ACE) %>%
+  count(ACE)
 
 
 #Plot for one state
@@ -310,7 +311,7 @@ selected_data1 <- selected_data1 %>%
 selected_data1 %>%
   filter(state == "Alabama")
 
-ggplot(selected_data1, aes(ace2more_1718, n)) +
+ggplot(selected_data1, aes(ACE, n)) +
   geom_col(aes(fill = n)) +
   scale_fill_distiller(type = "seq",
                        limits = c(0, max(selected_data1$n)),
@@ -327,7 +328,7 @@ selected_data1 %>%
   group_by(state) %>%
   nest() %>%
   mutate(plot = map(data, ~
-                      ggplot(.x, aes(ace2more_1718, n)) +
+                      ggplot(.x, aes(ACE, n)) +
                       geom_col(aes(fill = n)) +
                       scale_fill_distiller(type = "seq",
                                            limits = c(0, max(selected_data1$n)),
@@ -346,7 +347,7 @@ P <- selected_data1 %>%
   group_by(state) %>%
   nest() %>%
   mutate(plot = map2(data, state, ~
-                       ggplot(.x, aes(ace2more_1718, n)) +
+                       ggplot(.x, aes(ACE, n)) +
                        geom_col(aes(fill = n)) +
                        scale_fill_distiller(type = "seq",
                                             limits = c(0, max(selected_data1$n)),
@@ -391,16 +392,15 @@ recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
 }
 
 selected_data1 <- recode_missing_df(selected_data1) %>%
-  drop_na() # dropping cases with missing data
-
-
-selected_data1$ace2more_1718[which(selected_data1$ace2more_1718==2)]<-"Exp 1 ACE"
-selected_data1$ace2more_1718[which(selected_data1$ace2more_1718==3)]<-"Exp 2 ACE"
-
+  drop_na() %>%
+  mutate(ACE = factor(ace2more_1718),
+         ACE = recode_factor(ACE,
+                          "2" = "Exp 1 ACE",
+                          "3" = "Exp 2 Ace"))
 
 selected_data1 <- selected_data1 %>%
-  group_by(state, ace2more_1718) %>%
-  count(ace2more_1718)
+  group_by(state, ACE) %>%
+  count(ACE)
 
 selected_data1 <- selected_data1 %>%
   group_by(state) %>%
@@ -409,6 +409,7 @@ selected_data1 <- selected_data1 %>%
 # Creating a column for label
 
 library(english)
+library(glue)
 selected_data1 <- selected_data1 %>%
   mutate(label =
   glue("{str_to_title(as.english(tot))} Children experienced ACE"))
@@ -419,7 +420,7 @@ selected_data1 <- selected_data1 %>%
 selected_data1 %>%
   filter(state == "Alabama")
 
-ggplot(selected_data1, aes(ace2more_1718, n)) +
+ggplot(selected_data1, aes(ACE, n)) +
   geom_col(aes(fill = n)) +
   scale_fill_distiller(type = "seq",
                        limits = c(0, max(selected_data1$n)),
@@ -437,7 +438,7 @@ final_plots <- selected_data1 %>%
   group_by(state, label) %>%
   nest() %>%
   mutate(plots = pmap(list(state, label, data),
-                      ~ggplot(..3, aes(ace2more_1718, n)) +
+                      ~ggplot(..3, aes(ACE, n)) +
                         geom_col(aes(fill = n)) +
                         scale_fill_distiller(type = "seq",
                                              limits = c(0, max(selected_data1$n)),
