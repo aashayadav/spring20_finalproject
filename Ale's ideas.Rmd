@@ -138,6 +138,26 @@ by_ed_level <- d %>%
 by_ed_level 
 
 str(by_ed_level$data)
+
+
+mod1 <- lm(confident ~ read, d)
+mod2 <- lm(confident ~ stories_songs, d)
+
+
+mod1
+mod2
+
+mods <- by_ed_level %>%
+    mutate(m1 = map(data, ~lm(confident ~ read, data = .x)),
+           m2 = map(data, ~lm(confident ~ stories_songs, data = .x)))
+
+extract_p <- function(anova_ob) {
+    anova_ob[["Pr(>F)"]][2]
+}
+
+mods %>%
+    mutate(comp12 = map2(m1, m2, anova),
+           p_val_12 = map_dbl(comp12, extract_p)) # this didn't work, it says not meaningful for factors
 ```
 
 
@@ -146,7 +166,7 @@ str(by_ed_level$data)
 
 ggplot(d, aes(read, confident)) +
   geom_jitter(color = "cornflowerblue") +
-  facet_wrap(~primary_cg_ed)
+  facet_wrap(~primary_cg_ed) 
 ```
 
 ```{r}
