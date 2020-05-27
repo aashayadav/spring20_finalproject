@@ -5,6 +5,8 @@ date: "4/28/2020"
 output: html_document
 ---
 
+We are using the National Survey of Children’s Health (NSCH) data. This nationally representative dataset includes information on multiple variables related to child health and wellbeing for non-institutionalized children between zero and seventeen years of age across the United States. It includes variables on domains such as physical health, mental health, access and quality to health care services, and the ecological contexts in which the child develops (family, neighborhoods, school, and social environments). 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -15,57 +17,27 @@ library(english)
 library(glue)
 
 theme_set(theme_minimal())
-
 ```
 
 ```{r}
 # importing the data
-
 NCSH <- import(here("data","2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df")
 state <- import(here("data","fips_state.csv"))
+
 # Left_join to add states in the NCSH dataset
-
 final_data <- left_join(NCSH, state, by = "FIPSST")
-
-
 ```
 
-
-Final Project Components
-
-* No code is used repetitively (no more than twice) [10 points]
-* More than one variant of purrr::map is used [10 points]
-* At least one {purrr} function outside the basic map family (walk_*, reduce, modify_*, etc.) [10 points]
-* At least one instance of parallel iteration (e.g., map2_*, pmap_*) [10 points]
-* At least one use case of purrr::nest %>% mutate() [10 points]
-* At least two custom functions [20 points; 10 points each]
-  ** Each function must do exactly one thing
-  ** The functions may replicate the behavior of a base function - as noted above this is about practicing the skills you learn in class
-* Code is fully reproducible and housed on GitHub [10 points]
-* No obvious errors in chosen output format [10 points]
-* Deployed on the web and shareable through a link [10 points]
-
-
 ```{r}
-
+# data prep
 selected_data <- final_data %>%
   select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
   janitor::clean_names() %>% # cleaning names
-  filter(sc_age_years <= 5, ace2more_1718 > 1)
-
-
+  filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering data
 ```
 
-# Plots looking at number of children experiencing Adverse Childhood Expereince (ACE) in  in US states. 
-
 ```{r}
-
-# 1 custom function on missing data, nest, mutate and pmap to produce plot for 51 states (by Asha)
-
-selected_data1 <-selected_data %>%
-  select(state, ace2more_1718)
-
-# creating a function to recode missing data
+# Function to recode missing data
 
 # vector with missing values in my dataset
 missing_vals <- c(90, 95, 99)
@@ -80,87 +52,131 @@ recode_missing <- function(x, missing_vals = c(90, 95, 99)) {
 recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
   modify(df, ~recode_missing(.x, missing_vals)) # here uses the function created above
 }
+```
 
-selected_data1 <- recode_missing_df(selected_data1) %>%
-  drop_na() %>%
-  mutate(ACE = factor(ace2more_1718),
-         ACE = recode_factor(ACE,
-                          "2" = "Exp 1 ACE",
-                          "3" = "Exp 2 Ace"))
 
-selected_data1 <- selected_data1 %>%
+```{r}
+# more data cleaning
+d <- recode_missing_df(selected_data) %>%
+  drop_na() %>% # dropping cases with missing data
+  mutate(stories_songs = factor(k6q61_r),
+         stories_songs = fct_recode(stories_songs,
+                           "0 days" = "1",
+                           "1-3 days" = "2",
+                           "4-6 days" = "3",
+                           "Every day" = "4"),
+         read = factor(k6q60_r),
+         read = fct_recode(read,
+                           "0 days" = "1",
+                           "1-3 days" = "2",
+                           "4-6 days" = "3",
+                           "Every day" = "4"),
+         confident = factor(confident),
+         confident = fct_recode(confident,
+                           "Completely confident" = "1",
+                           "Mostly confident" = "2",
+                           "Somewhat confident" = "3",
+                           "Not at all confident" = "4"),
+         how_well_demands = factor(k8q30),
+         how_well_demands = fct_recode(how_well_demands,
+                           "Very well" = "1",
+                           "Somewhat well" = "2",
+                           "Not very well" = "3",
+                           "Not at all" = "4"),
+         primary_cg_ed = factor(a1_grade),
+         primary_cg_ed = fct_recode(primary_cg_ed,
+                           "8th grade or less" = "1",
+                           "9th-12th grade; No diploma" = "2",
+                           "High School Graduate or GED" = "3",
+                           "Vocational, trade, or business school program" = "4",
+                           "Some College Credit, no Degree" = "5",
+                           "Associate Degree" = "6",
+                           "Bachelor’s Degree" = "7",
+                           "Master’s Degree" = "8",
+                           "Doctorate" = "9"),
+         home_language = factor(hhlanguage),
+         home_language = fct_recode(home_language,
+                          "English" = "1",
+                          "Spanish" = "2",
+                          "Other" = "3"),
+         child_sex = factor(sc_sex),
+         child_sex = fct_recode(child_sex,
+                          "Male" = "1",
+                          "Female" = "2"),
+         child_age = sc_age_years,
+         ACE = factor(ace2more_1718),
+         ACE = fct_recode(ACE,
+                          "Exp 1 ACE" = "2",
+                          "Exp 2 ACE" = "3")) %>%
+  select(hhid, child_sex, child_age, home_language, stories_songs, read, confident, how_well_demands, primary_cg_ed, ACE, state)
+```
+
+* Plots looking at number of children experiencing Adverse Childhood Experiences (ACE) in US states 
+
+```{r}
+# counting number of ACEs
+d2 <- d %>%
   group_by(state, ACE) %>%
-  count(ACE)
-
-selected_data1 <- selected_data1 %>%
+  count(ACE) %>%
   group_by(state) %>%
   mutate(tot = sum(n))
 
 # Creating a column for label
-
-library(english)
-library(glue)
-selected_data1 <- selected_data1 %>%
+d2 <- d2 %>%
   mutate(label =
   glue("{str_to_title(as.english(tot))} Children experienced ACE"))
 
-
 # Plot for one state
-
-selected_data1 %>%
-  filter(state == "Alabama")
-
-ggplot(selected_data1, aes(ACE, n)) +
+plot_alabama <- d2 %>%
+  filter(state == "Alabama") %>%
+  ggplot(aes(ACE, n)) +
   geom_col(aes(fill = n)) +
   scale_fill_distiller(type = "seq",
-                       limits = c(0, max(selected_data1$n)),
+                       limits = c(0, max(d2$n)),
                        palette = "BuPu",
                        direction = 1) +
-  ylim(0, max(selected_data1$n)) +
+  ylim(0, max(d2$n)) +
   coord_flip() +
-  labs(title = "Number of children experienced ACE : Alabama",
-       x = "Adverse Childhood Experience",
-       y = "Number of children under 5s",
-       caption = unique(selected_data1$label))
+  labs(title = "Number of children that experienced ACEs: Alabama",
+       x = "Adverse Childhood Experiences",
+       y = "Number of children",
+       caption = unique(d2$label))
 
-#Produce plots for 51 states using pmap
-final_plots <- selected_data1 %>%
+#Producing plots for 51 states using pmap
+final_plots <- d2 %>% 
   group_by(state, label) %>%
   nest() %>%
   mutate(plots = pmap(list(state, label, data),
                       ~ggplot(..3, aes(ACE, n)) +
                         geom_col(aes(fill = n)) +
                         scale_fill_distiller(type = "seq",
-                                             limits = c(0, max(selected_data1$n)),
+                                             limits = c(0, max(d2$n)),
                                              palette = "BuPu",
                                              direction = 1) +
-                        ylim(0, max(selected_data1$n)) +
+                        ylim(0, max(d2$n)) +
                         coord_flip() +
-                        labs(title = glue("Number of children experienced ACE : {..1}"),
-                             x = "Adverse Childhood Exp",
+                        labs(title = glue("Number of children that experienced ACEs: {..1}"),
+                             x = "Adverse Childhood Experiences",
                              y = "Number of Children",
                              caption = ..2)))
 final_plots$plots[[5]]
-# Create directory to save plots
 
-fs::dir_create(here::here("plots", "selected_data1"))
+# Creating directory to save plots
+fs::dir_create(here::here("plots", "d2"))
 
-# Create file path
+# Creating file path
 files <- str_replace_all(tolower(final_plots$state), " ", "-")
-paths <- here::here("plots", "selected_data1", glue("{files}.png"))
+paths <- here::here("plots", "d2", glue("{files}.png"))
 paths
 
-#save plots
+# saving plots
 walk2(paths, final_plots$plots, ggsave,
       width = 9.5, 
       height = 6.5,
       dpi = 500)
-
 ```
 
-
-## First Series of Plots: By Mark
-### Examining 'Confidence in School Readiness' by 'Caregiver's Highest Level of Education'
+* Examining 'Confidence in School Readiness' by 'Caregiver's Highest Level of Education'
 
 ```{r}
 plot1_df <- d %>%
@@ -169,6 +185,7 @@ plot1_df <- d %>%
   mutate(prop_conf = round(n/sum(n), digits = 2)) %>%  
   mutate(label =
         glue("NCES Data from {str_to_title(state)}"))
+
 plot1 <- plot1_df  %>%
   group_by(state, label) %>%
   nest() %>%
@@ -184,27 +201,26 @@ plot1$plots[[1]]
 
 ```
 
-### Saving plots for examining 'Confidence in School Readiness' by 'Caregiver's Highest Level of Education'
+Saving plots for examining 'Confidence in School Readiness' by 'Caregiver's Highest Level of Education'
 
 ```{r}
-# Create directory to save plots
+# Creating directory to save plots
 
 fs::dir_create(here::here("plots", "plot1"))
 
-# Create file path
+# Creating file path
 files <- str_replace_all(tolower(plot1$state), " ", "-")
 paths <- here::here("plots", "plot1", glue("schl-conf-and-edlevel-by-state_{files}.png"))
 paths
-#save plots
+
+#saving plots
 walk2(paths, plot1$plots, ggsave,
       width = 9.5, 
       height = 6.5,
       dpi = 500)
-
 ```
 
-## Second Series of Plots
-## Examining'Confidence in School Readiness' by 'Frequency of Reading at Home'
+* Examining'Confidence in School Readiness' by 'Frequency of Reading at Home'
 
 ```{r}
 
@@ -214,6 +230,7 @@ plot2_df <- d %>%
   mutate(perc_conf = 100*(round(n/sum(n), digits = 2))) %>%
   mutate(label =
         glue("NCES Data for parents reporting '{str_to_title(primary_cg_ed)}'"))
+
 plot2 <- plot2_df  %>%
   group_by(primary_cg_ed, label) %>%
   nest() %>%
@@ -230,20 +247,20 @@ plot2$plots[[5]]
 
 ```
 
-### Saving plots for examining 'Confidence in School Readiness' by 'Frequency of Reading at Home'
+Saving plots for examining 'Confidence in School Readiness' by 'Frequency of Reading at Home'
 
 ```{r}
-# Create directory to save plots
+# Creating directory to save plots
 fs::dir_create(here::here("plots", "plot2"))
-# Create file path
+
+# Creating file path
 files <- str_replace_all(tolower(plot2$primary_cg_ed), " ", "-")
 paths <- here::here("plots", "plot2", glue("schl-conf-and-read-by-edlevel_{files}.png"))
 paths
-#save plots
+
+#saving plots
 walk2(paths, plot2$plots, ggsave,
       width = 9.5, 
       height = 6.5,
       dpi = 500)
 ```
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
