@@ -11,15 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(rio)
 library(here)
-library(naniar)
-library(colorblindr)
-library(plotly)
-library(tigris)
-library(geofacet)
-library(cowplot)
-library(ggrepel)
-library(ggalt)
-library(forcats)
+library(english)
+library(glue)
 
 theme_set(theme_minimal())
 
@@ -52,7 +45,9 @@ Final Project Components
 * No obvious errors in chosen output format [10 points]
 * Deployed on the web and shareable through a link [10 points]
 
+
 ```{r}
+
 selected_data <- final_data %>%
   select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
   janitor::clean_names() %>% # cleaning names
@@ -61,16 +56,11 @@ selected_data <- final_data %>%
 
 ```
 
-
+# Plots looking at number of children experiencing Adverse Childhood Expereince (ACE) in  in US states. 
 
 ```{r}
 
 # 1 custom function on missing data, nest, mutate and pmap to produce plot for 51 states (by Asha)
-
-selected_data <- final_data %>%
-  select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
-  janitor::clean_names() %>% # cleaning names
-  filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering for 5 years old
 
 selected_data1 <-selected_data %>%
   select(state, ace2more_1718)
@@ -165,5 +155,95 @@ walk2(paths, final_plots$plots, ggsave,
       width = 9.5, 
       height = 6.5,
       dpi = 500)
+
 ```
+
+
+## First Series of Plots: By Mark
+### Examining 'Confidence in School Readiness' by 'Caregiver's Highest Level of Education'
+
+```{r}
+plot1_df <- d %>%
+  group_by(state, primary_cg_ed) %>%
+  count(confident) %>% 
+  mutate(prop_conf = round(n/sum(n), digits = 2)) %>%  
+  mutate(label =
+        glue("NCES Data from {str_to_title(state)}"))
+plot1 <- plot1_df  %>%
+  group_by(state, label) %>%
+  nest() %>%
+  mutate(plots = pmap(list(state, label, data),
+                      ~ggplot(..3, aes(primary_cg_ed, prop_conf, fill = confident)) +
+                      geom_bar(stat = "identity", position = "dodge") +
+                      coord_flip() +
+                      labs(title = glue("Confidence in School Preparedness Between \nLevels of Caregiver Education: {..1}"),
+                             x = "Caregiver's Highest Level of Education",
+                             y = "Proportion of Parents",
+                             caption = ..2)))
+plot1$plots[[1]]
+
+```
+
+### Saving plots for examining 'Confidence in School Readiness' by 'Caregiver's Highest Level of Education'
+
+```{r}
+# Create directory to save plots
+
+fs::dir_create(here::here("plots", "plot1"))
+
+# Create file path
+files <- str_replace_all(tolower(plot1$state), " ", "-")
+paths <- here::here("plots", "plot1", glue("schl-conf-and-edlevel-by-state_{files}.png"))
+paths
+#save plots
+walk2(paths, plot1$plots, ggsave,
+      width = 9.5, 
+      height = 6.5,
+      dpi = 500)
+
+```
+
+## Second Series of Plots
+## Examining'Confidence in School Readiness' by 'Frequency of Reading at Home'
+
+```{r}
+
+plot2_df <- d %>%
+  group_by(primary_cg_ed, home_language, read) %>%
+  count(confident) %>% 
+  mutate(perc_conf = 100*(round(n/sum(n), digits = 2))) %>%
+  mutate(label =
+        glue("NCES Data for parents reporting '{str_to_title(primary_cg_ed)}'"))
+plot2 <- plot2_df  %>%
+  group_by(primary_cg_ed, label) %>%
+  nest() %>%
+  mutate(plots = pmap(list(primary_cg_ed, label, data),
+                      ~ggplot(..3, aes(read, perc_conf, fill = confident)) +
+                      geom_bar(stat = "identity", position = "dodge") +
+                      coord_flip() +
+                      labs(title = "Confidence in School Preparedness Between \nLevels Frequency of Reading at Home",
+                           subtitle = glue("Caregiver Education Level: '{..1}'"),
+                             x = "Frequency of Reading at Home",
+                             y = "Percentage of Parent Reports",
+                             caption = ..2)))
+plot2$plots[[5]]
+
+```
+
+### Saving plots for examining 'Confidence in School Readiness' by 'Frequency of Reading at Home'
+
+```{r}
+# Create directory to save plots
+fs::dir_create(here::here("plots", "plot2"))
+# Create file path
+files <- str_replace_all(tolower(plot2$primary_cg_ed), " ", "-")
+paths <- here::here("plots", "plot2", glue("schl-conf-and-read-by-edlevel_{files}.png"))
+paths
+#save plots
+walk2(paths, plot2$plots, ggsave,
+      width = 9.5, 
+      height = 6.5,
+      dpi = 500)
+```
+
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
