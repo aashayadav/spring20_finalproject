@@ -4,6 +4,18 @@ author: "Asha Yadav, Alejandra Garcia Isaza, and Mark Hammond"
 date: "4/28/2020"
 output: html_document
 ---
+```{r brock_review}
+# Asha, Alejandra, Mark,
+
+# Three areas of strength in your code are: Good data cleaning up front. Super clean and easy to follow the code inside the code chunks. Nice iteration work with the output plots and saving. Thanks!
+
+# One thing I learned from reviewing the script is: The way you passed the dots with ..1, ..2, and ..3 for plots (labels/ captions). Other than watching Daniel use the ..# in class, I have not seen this used in other code. I think the way you have passed the dots, especially inside labs() is starting to help me understand. I had to look at the code a couple of times to see where the dots were passed from but, it totally follows. Thanks!
+
+# One area for improvement, a totally minor thing here: since you have 267 lines of code, simple code chunk labels inside {r } would help me navigate your code. You do a great job of specifying directly above each code chunk what you are going to do in the code chunk directly below. However, I find myself lost a bit between big code chunks with a somewhat similar function. Something simple like:
+# {r confidence_reading},  {r confidence_ed_level},  
+#  {r saving_plots},  at the start of the code chunk would be helpful for me. 
+# Great work here. Thanks for sharing.
+```
 
 We are using the National Survey of Children’s Health (NSCH) data. This nationally representative dataset includes information on multiple variables related to child health and wellbeing for non-institutionalized children between zero and seventeen years of age across the United States. It includes variables on domains such as physical health, mental health, access and quality to health care services, and the ecological contexts in which the child develops (family, neighborhoods, school, and social environments). 
 
@@ -61,10 +73,10 @@ d <- recode_missing_df(selected_data) %>%
   drop_na() %>% # dropping cases with missing data
   mutate(stories_songs = factor(k6q61_r),
          stories_songs = fct_recode(stories_songs,
-                           "0 days" = "1",
-                           "1-3 days" = "2",
-                           "4-6 days" = "3",
-                           "Every day" = "4"),
+                                    "0 days" = "1",
+                                    "1-3 days" = "2",
+                                    "4-6 days" = "3",
+                                    "Every day" = "4"),
          read = factor(k6q60_r),
          read = fct_recode(read,
                            "0 days" = "1",
@@ -79,30 +91,30 @@ d <- recode_missing_df(selected_data) %>%
                            "Not at all confident" = "4"),
          how_well_demands = factor(k8q30),
          how_well_demands = fct_recode(how_well_demands,
-                           "Very well" = "1",
-                           "Somewhat well" = "2",
-                           "Not very well" = "3",
-                           "Not at all" = "4"),
+                                       "Very well" = "1",
+                                       "Somewhat well" = "2",
+                                       "Not very well" = "3",
+                                       "Not at all" = "4"),
          primary_cg_ed = factor(a1_grade),
          primary_cg_ed = fct_recode(primary_cg_ed,
-                           "8th grade or less" = "1",
-                           "9th-12th grade; No diploma" = "2",
-                           "High School Graduate or GED" = "3",
-                           "Vocational, trade, or business school program" = "4",
-                           "Some College Credit, no Degree" = "5",
-                           "Associate Degree" = "6",
-                           "Bachelor’s Degree" = "7",
-                           "Master’s Degree" = "8",
-                           "Doctorate" = "9"),
+                                    "8th grade or less" = "1",
+                                    "9th-12th grade; No diploma" = "2",
+                                    "High School Graduate or GED" = "3",
+                                    "Vocational, trade, or business school program" = "4",
+                                    "Some College Credit, no Degree" = "5",
+                                    "Associate Degree" = "6",
+                                    "Bachelor’s Degree" = "7",
+                                    "Master’s Degree" = "8",
+                                    "Doctorate" = "9"),
          home_language = factor(hhlanguage),
          home_language = fct_recode(home_language,
-                          "English" = "1",
-                          "Spanish" = "2",
-                          "Other" = "3"),
+                                    "English" = "1",
+                                    "Spanish" = "2",
+                                    "Other" = "3"),
          child_sex = factor(sc_sex),
          child_sex = fct_recode(child_sex,
-                          "Male" = "1",
-                          "Female" = "2"),
+                                "Male" = "1",
+                                "Female" = "2"),
          child_age = sc_age_years,
          ACE = factor(ace2more_1718),
          ACE = fct_recode(ACE,
@@ -149,10 +161,11 @@ final_plots <- d2 %>%
   mutate(plots = pmap(list(state, label, data),
                       ~ggplot(..3, aes(ACE, n)) +
                         geom_col(aes(fill = n)) +
-                        scale_fill_distiller(type = "seq",
-                                             limits = c(0, max(d2$n)),
-                                             palette = "BuPu",
-                                             direction = 1) +
+                        scale_fill_distiller(
+                          type = "seq",
+                          limits = c(0, max(d2$n)),
+                          palette = "BuPu",
+                          direction = 1) +
                         ylim(0, max(d2$n)) +
                         coord_flip() +
                         labs(title = glue("Number of children that experienced ACEs: {..1}"),
