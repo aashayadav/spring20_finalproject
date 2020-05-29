@@ -5,6 +5,31 @@ date: "4/28/2020"
 output: html_document
 ---
 
+Stephanie Gluck Peer Review 
+
+Area of Strength:
+
+1) I found the recode missing data function extremely useful and can see myself using variant of this code in my own future work, great job for coming up with this function!
+
+2)  I learned about a new package `english` and the `as.english` function to convert numeric into english words! It was cool to see this in action in the subtitle of their plot. 
+
+3) I liked the use of the scale-fill-distiller to create a gradient to indicate the number of children who experienced ACE in their bar graph such tha the color is proportional to the number of children and gets darker with greater n.
+
+What I learned from reviewing the project: 
+
+It has always been fascinating to me to see these type of large national education dataset as in my work the sample sizes are typically much smaller. I also saw that having functions in these type of large datasets can be immensely helpful for looping through groups such as state. In peer reviewing the group's work, I actually learned some new codes myself using `mutate_at` to recode multiple variables at the same time. 
+
+Area of Improvement (see codes in their respective code chunk): 
+
+1) In loading and selecting the data, I wondered if it may be helpful to create a separate list of variables that one can then feed into dplyr select and I tried to simplify repeated values using shorter codes (e.g. ACE 1 to 10)
+
+2) It may be helpful to use a function such as `mutate_at` to recode multiple variables that require the same values to be recoded into. Also I wonder if there may be a way to batch factor multiple variables using some type of function, perhaps this can also be accomplished using `mutate_at`?.
+
+3) I included some minor formatting codes for ggplot such as hidding the legend and left justify the plot title. 
+
+
+
+
 We are using the National Survey of Children’s Health (NSCH) data. This nationally representative dataset includes information on multiple variables related to child health and wellbeing for non-institutionalized children between zero and seventeen years of age across the United States. It includes variables on domains such as physical health, mental health, access and quality to health care services, and the ecological contexts in which the child develops (family, neighborhoods, school, and social environments). 
 
 ```{r setup, include=FALSE}
@@ -34,6 +59,21 @@ selected_data <- final_data %>%
   select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
   janitor::clean_names() %>% # cleaning names
   filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering data
+
+
+#If you wanted to have a separate list of the data variables that you can then call in select then this might be an alternative way, I also tried to simplify calling ACE 1 to 10: 
+
+data_list <- c("HHID", "HHLANGUAGE", "SC_AGE_YEARS", "SC_SEX", "MOMAGE", "HHCOUNT", "K6Q20", "K11Q60", "K11Q61", "K11Q62", "S9Q34", "K10Q14", paste0("ACE", 1:10), "RECOGABC", "A1_GRADE", "A2_GRADE", "K6Q60_R", "K6Q61_R", "FOODSIT", "K8Q30", "CONFIDENT", "povlev4_1718", "AdultEduc_1718", "WrkngPoor_1718", "ACEct_1718", "ACE2more_1718", "State")
+
+data_list
+
+test_selected_data <- final_data %>% 
+  select(any_of(data_list)) %>%
+  janitor::clean_names() %>% # cleaning names
+  filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering data
+
+head(test_selected_data)
+
 ```
 
 ```{r}
@@ -56,6 +96,21 @@ recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
 
 
 ```{r}
+
+
+#if you want to recode multiple variables with the same values
+
+recode_test <- recode_missing_df(selected_data) %>% 
+  drop_na() %>% 
+  mutate(stories_songs = factor(k6q61_r),
+         read = factor(k6q60_r)) %>% 
+  mutate_at(c("stories_songs","read"), ~(fct_recode(., 
+                                              "0 days" = "1",
+                                              "1-3 days" = "2",
+                                              "4-6 days" = "3",
+                                              "Every day" = "4")))
+
+
 # more data cleaning
 d <- recode_missing_df(selected_data) %>%
   drop_na() %>% # dropping cases with missing data
@@ -140,7 +195,8 @@ plot_alabama <- d2 %>%
   labs(title = "Number of children that experienced ACEs: Alabama",
        x = "Adverse Childhood Experiences",
        y = "Number of children",
-       caption = unique(d2$label))
+       caption = unique(d2$label)) +
+  theme(legend.position = "none") #if you want to remove the legend from your plot
 
 #Producing plots for 51 states using pmap
 final_plots <- d2 %>% 
@@ -196,7 +252,8 @@ plot1 <- plot1_df  %>%
                       labs(title = glue("Confidence in School Preparedness Between \nLevels of Caregiver Education: {..1}"),
                              x = "Caregiver's Highest Level of Education",
                              y = "Proportion of Parents",
-                             caption = ..2)))
+                             caption = ..2) + 
+                        theme(plot.title.position = "plot"))) #If you want to align your plot flush to the left margin
 plot1$plots[[1]]
 
 ```
