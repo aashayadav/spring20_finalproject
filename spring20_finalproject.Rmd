@@ -52,6 +52,10 @@ recode_missing <- function(x, missing_vals = c(90, 95, 99)) {
 recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
   modify(df, ~recode_missing(.x, missing_vals)) # here uses the function created above
 }
+
+# JW strength: Your two functions for recoding missing data are very clever! And nice job writing a function and then using that in another function! Detecting and recoding missing data (e.g. recoding to NA in order to drop NAs, as you've done) seems like a very useful function for data cleaning.
+
+# JW something I learned: how to use modify()! Seeing your use of it here helps me understand how to apply it. 
 ```
 
 
@@ -109,6 +113,9 @@ d <- recode_missing_df(selected_data) %>%
                           "Exp 1 ACE" = "2",
                           "Exp 2 ACE" = "3")) %>%
   select(hhid, child_sex, child_age, home_language, stories_songs, read, confident, how_well_demands, primary_cg_ed, ACE, state)
+
+#JW suggestion: I like what you've done with recoding here, making the names and values more meaningful. (You started out with a tough data set in that sense - so many columns for which we couldn't easily see what they mean!) One suggestion for your recoding is to encapsulate as much meaning in the column names as possible, and keep your cell values simpler -- and numeric, as appropriate. For example, for the column "read", you could instead call it days_per_week_read, and just have the values be 1-3, 4-6, etc., instead of the word "days" in the cell. Or you could even convert 1-3 and 4-6 into levels corresponding from least to most. You might lose some information here, so take the suggestion with a grain of salt. But I think conversion to purely numeric column cells might make your data easier to work with. (Of course, it depends what you're aiming to do with it.)
+
 ```
 
 * Plots looking at number of children experiencing Adverse Childhood Experiences (ACE) in US states 
@@ -141,6 +148,8 @@ plot_alabama <- d2 %>%
        x = "Adverse Childhood Experiences",
        y = "Number of children",
        caption = unique(d2$label))
+
+# JW strength: this is a really clear demo of the principle of writing the code for one thing first (in this case, one plot), then looping through using pmap, and extracting plots. And your consistent code styling makes it really easy to follow. 
 
 #Producing plots for 51 states using pmap
 final_plots <- d2 %>% 
@@ -218,6 +227,7 @@ walk2(paths, plot1$plots, ggsave,
       width = 9.5, 
       height = 6.5,
       dpi = 500)
+
 ```
 
 * Examining'Confidence in School Readiness' by 'Frequency of Reading at Home'
@@ -245,6 +255,8 @@ plot2 <- plot2_df  %>%
                              caption = ..2)))
 plot2$plots[[5]]
 
+# Data viz suggestion: since your color scale represents a gradient from not at all confident to completely confident, it might reduce viewer cognitive load if your color scale is also a more intuitive gradient? 
+
 ```
 
 Saving plots for examining 'Confidence in School Readiness' by 'Frequency of Reading at Home'
@@ -263,4 +275,9 @@ walk2(paths, plot2$plots, ggsave,
       width = 9.5, 
       height = 6.5,
       dpi = 500)
+
+#JW area of strength: This is an overall comment, not specific to this code chunk - Your commented-out code is very clear. It is so organized and was easy to read through your script and understand what you were doing. 
+
+# Another thing I learned from reviewing your script: I appreciated seeing you use pmap in multiple ways. I've confused myself a bit in my own plotting work re: when I should turn the code into a function in order to apply it, vs. when to use pmap. Seeing your use of it has got me thinking more flexibly about using pmap. 
+
 ```
