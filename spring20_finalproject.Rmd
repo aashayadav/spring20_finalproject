@@ -161,6 +161,9 @@ final_plots <- d2 %>%
                              caption = ..2)))
 final_plots$plots[[5]]
 
+# Thuy: Hi! I guess you already planned to make the graph even prettier, but in case you were too busy with other stuff, I just want to leave some note here so you won't forget: 1) limit the limx axis to 10 maybe, so you won't have much space in the right side. 2) we may not need the legend. 
+# 3) Plus: just a clarification. You want to put the total number in the caption? If that's the case, could it be easier to reader of you put something like: caption = "Total number of chilren experience ACE: ..2"
+
 # Creating directory to save plots
 fs::dir_create(here::here("plots", "d2"))
 
@@ -218,6 +221,7 @@ walk2(paths, plot1$plots, ggsave,
       width = 9.5, 
       height = 6.5,
       dpi = 500)
+
 ```
 
 * Examining'Confidence in School Readiness' by 'Frequency of Reading at Home'
@@ -245,6 +249,7 @@ plot2 <- plot2_df  %>%
                              caption = ..2)))
 plot2$plots[[5]]
 
+# Thuy: I assume the frequency is the number of days per week? It would be nice for an "outsider" reader like me, who is not farmiliar with education professional, if you can make the y axis more explicit. Thanks :)
 ```
 
 Saving plots for examining 'Confidence in School Readiness' by 'Frequency of Reading at Home'
