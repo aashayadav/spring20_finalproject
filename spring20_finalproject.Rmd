@@ -36,6 +36,7 @@ selected_data <- final_data %>%
   filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering data
 ```
 
+
 ```{r}
 # Function to recode missing data
 
@@ -54,6 +55,15 @@ recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
 }
 ```
 
+Great job writing functions! While if i'm interpreting it right, we want to replace any 90, 95, 99 in our dataset by NA, we can do below without writing functions. Just FYI.
+
+```{r}
+foo <- selected_data
+foo[foo == 90 | foo == 95 | foo == 99] <- NA
+dd <- foo %>% drop_na()
+```
+
+Just so you know that I have checked the following chunk with the dataframe "dd" I just created and obtained the same result.
 
 ```{r}
 # more data cleaning
