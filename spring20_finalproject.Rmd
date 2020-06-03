@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 ---
 title: "spring20_finalproject"
 author: "Asha Yadav, Alejandra Garcia Isaza, and Mark Hammond"
