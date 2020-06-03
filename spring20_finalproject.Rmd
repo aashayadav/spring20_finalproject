@@ -56,19 +56,20 @@ recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
 }
 ```
 
-```{r}
-d1 <- recode_missing_df(selected_data) %>%
- drop_na() %>% 
-  mutate_at(vars(k6q61_r, k6q60_r), 
-            funs(factor(.,
-                        levels = c(
-                          "0 days",
-                          "1-3 days",
-                          "4-6 days",
-                          "Everyday"),
-                        ordered = TRUE)))
 
+```{r}
+recode_test <- recode_missing_df(selected_data) %>% 
+  drop_na() %>% 
+  mutate(stories_songs = factor(k6q61_r),
+         read = factor(k6q60_r)) %>% 
+  mutate_at(c("stories_songs","read"), ~(fct_recode(., 
+                                              "0 days" = "1",
+                                              "1-3 days" = "2",
+                                              "4-6 days" = "3",
+                                              "Every day" = "4")))
 ```
+
+
 
 
 ```{r}
@@ -150,7 +151,7 @@ bar_plot(d, d$read) +
   labs(x = 'Number of days reading',
        y = 'Count',
        title = 'Confidence in kindergarten readiness by frequency of reading at home') +
-  facet_wrap(~confident)
+facet_wrap(~confident)
   
 
 ```
