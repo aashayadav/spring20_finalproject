@@ -30,12 +30,13 @@ final_data <- left_join(NCSH, state, by = "FIPSST")
 
 ```
 
-```{r}
+
+```{r, data prep}
 # data prep
 selected_data <- final_data %>%
   select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
   janitor::clean_names() %>% # cleaning names
-  filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering data
+  filter(sc_age_years == 5) # filtering data
 ```
 
 ```{r, function 1}
@@ -57,40 +58,13 @@ recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
 ```
 
 
-```{r}
-recode_test <- recode_missing_df(selected_data) %>% 
-  drop_na() %>% 
-  mutate(stories_songs = factor(k6q61_r),
-         read = factor(k6q60_r)) %>% 
-  mutate_at(c("stories_songs","read"), ~(fct_recode(., 
-                                              "0 days" = "1",
-                                              "1-3 days" = "2",
-                                              "4-6 days" = "3",
-                                              "Every day" = "4")))
-```
-
-
-
-
-```{r}
+```{r, more data cleaning}
 # more data cleaning
 
 
 d <- recode_missing_df(selected_data) %>%
   drop_na() %>% # dropping cases with missing data
-  mutate(stories_songs = factor(k6q61_r),
-         stories_songs = fct_recode(stories_songs,
-                           "0 days" = "1",
-                           "1-3 days" = "2",
-                           "4-6 days" = "3",
-                           "Every day" = "4"),
-         read = factor(k6q60_r),
-         read = fct_recode(read,
-                           "0 days" = "1",
-                           "1-3 days" = "2",
-                           "4-6 days" = "3",
-                           "Every day" = "4"),
-         confident = factor(confident),
+  mutate(confident = factor(confident),
          confident = fct_recode(confident,
                            "Completely confident" = "1",
                            "Mostly confident" = "2",
@@ -126,10 +100,16 @@ d <- recode_missing_df(selected_data) %>%
          ACE = factor(ace2more_1718),
          ACE = fct_recode(ACE,
                           "Exp 1 ACE" = "2",
-                          "Exp 2 ACE" = "3")) %>%
+                          "Exp 2 ACE" = "3"),
+         stories_songs = factor(k6q61_r),
+         read = factor(k6q60_r)) %>% 
+  mutate_at(c("stories_songs","read"), ~(fct_recode(., 
+                                              "0 days" = "1",
+                                              "1-3 days" = "2",
+                                              "4-6 days" = "3",
+                                              "Every day" = "4"))) %>%
   select(hhid, child_sex, child_age, home_language, stories_songs, read, confident, how_well_demands, primary_cg_ed, ACE, state)
 ```
-
 
 
 ```{r, function 2}
@@ -155,72 +135,6 @@ facet_wrap(~confident)
 
 ```
 
-* Plots looking at number of children experiencing Adverse Childhood Experiences (ACE) in US states 
-
-```{r}
-# counting number of ACEs
-d2 <- d %>%
-  group_by(state, ACE) %>%
-  count(ACE) %>%
-  group_by(state) %>%
-  mutate(tot = sum(n))
-
-# Creating a column for label
-d2 <- d2 %>%
-  mutate(label =
-  glue("{str_to_title(as.english(tot))} Children experienced ACE"))
-
-# Plot for one state
-plot_alabama <- d2 %>%
-  filter(state == "Alabama") %>%
-  ggplot(aes(ACE, n)) +
-  geom_col(aes(fill = n)) +
-  scale_fill_distiller(type = "seq",
-                       limits = c(0, max(d2$n)),
-                       palette = "BuPu",
-                       direction = 1) +
-  ylim(0, max(d2$n)) +
-  coord_flip() +
-  labs(title = "Number of children that experienced ACEs: Alabama",
-       x = "Adverse Childhood Experiences",
-       y = "Number of children",
-       caption = unique(d2$label))
-
-#Producing plots for 51 states using pmap
-final_plots <- d2 %>% 
-  group_by(state, label) %>%
-  nest() %>%
-  mutate(plots = pmap(list(state, label, data),
-                      ~ggplot(..3, aes(ACE, n)) +
-                        geom_col(aes(fill = n), show.legend = FALSE) +
-                        scale_fill_distiller(type = "seq",
-                                             limits = c(0, max(d2$n)),
-                                             palette = "BuPu",
-                                             direction = 1) +
-                        ylim(0, max(d2$n)) +
-                        coord_flip() +
-                        geom_text(aes(label = n), hjust = 2, size = 6) +
-                        labs(title = glue("Number of children that experienced ACEs:
-                        {..1}"),
-                        x = "Adverse Childhood Experiences",
-                        y = "Number of Children",
-                        caption = ..2)))
-final_plots$plots[[6]]
-
-# Creating directory to save plots
-fs::dir_create(here::here("plots", "d2"))
-
-# Creating file path
-files <- str_replace_all(tolower(final_plots$state), " ", "-")
-paths <- here::here("plots", "d2", glue("{files}.png"))
-paths
-
-# saving plots
-walk2(paths, final_plots$plots, ggsave,
-      width = 9.5, 
-      height = 6.5,
-      dpi = 500)
-```
 
 * Examining 'Confidence in School Readiness' by 'Caregiver's Highest Level of Education'
 
@@ -243,7 +157,7 @@ plot1 <- plot1_df  %>%
                              x = "Caregiver's Highest Level of Education",
                              y = "Proportion of Parents",
                              caption = ..2)))
-plot1$plots[[1]]
+plot1$plots[[20]]
 
 ```
 
@@ -266,372 +180,10 @@ walk2(paths, plot1$plots, ggsave,
       dpi = 500)
 ```
 
-* Examining'Confidence in School Readiness' by 'Frequency of Reading at Home'
 
-```{r}
 
-plot2_df <- d %>%
-  group_by(primary_cg_ed, home_language, read) %>%
-  count(confident) %>% 
-  mutate(perc_conf = 100*(round(n/sum(n), digits = 2))) %>%
-  mutate(label =
-        glue("NCES Data for parents reporting '{str_to_title(primary_cg_ed)}'"))
 
-plot2 <- plot2_df  %>%
-  group_by(primary_cg_ed, label) %>%
-  nest() %>%
-  mutate(plots = pmap(list(primary_cg_ed, label, data),
-                      ~ggplot(..3, aes(read, perc_conf, fill = confident)) +
-                      geom_bar(stat = "identity", position = "dodge") +
-                      coord_flip() +
-                      labs(title = "Confidence in School Preparedness Between \nLevels Frequency of Reading at Home",
-                           subtitle = glue("Caregiver Education Level: '{..1}'"),
-                             x = "Frequency of Reading at Home",
-                             y = "Percentage of Parent Reports",
-                             caption = ..2)))
-plot2$plots[[5]]
 
-```
 
-Saving plots for examining 'Confidence in School Readiness' by 'Frequency of Reading at Home'
 
-```{r}
-# Creating directory to save plots
-fs::dir_create(here::here("plots", "plot2"))
 
-# Creating file path
-files <- str_replace_all(tolower(plot2$primary_cg_ed), " ", "-")
-paths <- here::here("plots", "plot2", glue("schl-conf-and-read-by-edlevel_{files}.png"))
-paths
-
-#saving plots
-walk2(paths, plot2$plots, ggsave,
-      width = 9.5, 
-      height = 6.5,
-      dpi = 500)
-```
-=======
----
-title: "spring20_finalproject"
-author: "Asha Yadav, Alejandra Garcia Isaza, and Mark Hammond"
-date: "4/28/2020"
-output: html_document
----
-
-Stephanie Gluck Peer Review 
-
-Area of Strength:
-
-1) I found the recode missing data function extremely useful and can see myself using variant of this code in my own future work, great job for coming up with this function!
-
-2)  I learned about a new package `english` and the `as.english` function to convert numeric into english words! It was cool to see this in action in the subtitle of their plot. 
-
-3) I liked the use of the scale-fill-distiller to create a gradient to indicate the number of children who experienced ACE in their bar graph such tha the color is proportional to the number of children and gets darker with greater n.
-
-What I learned from reviewing the project: 
-
-It has always been fascinating to me to see these type of large national education dataset as in my work the sample sizes are typically much smaller. I also saw that having functions in these type of large datasets can be immensely helpful for looping through groups such as state. In peer reviewing the group's work, I actually learned some new codes myself using `mutate_at` to recode multiple variables at the same time. 
-
-Area of Improvement (see codes in their respective code chunk): 
-
-1) In loading and selecting the data, I wondered if it may be helpful to create a separate list of variables that one can then feed into dplyr select and I tried to simplify repeated values using shorter codes (e.g. ACE 1 to 10)
-
-2) It may be helpful to use a function such as `mutate_at` to recode multiple variables that require the same values to be recoded into. Also I wonder if there may be a way to batch factor multiple variables using some type of function, perhaps this can also be accomplished using `mutate_at`?.
-
-3) I included some minor formatting codes for ggplot such as hidding the legend and left justify the plot title. 
-
-
-
-
-We are using the National Survey of Children’s Health (NSCH) data. This nationally representative dataset includes information on multiple variables related to child health and wellbeing for non-institutionalized children between zero and seventeen years of age across the United States. It includes variables on domains such as physical health, mental health, access and quality to health care services, and the ecological contexts in which the child develops (family, neighborhoods, school, and social environments). 
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
-library(tidyverse)
-library(rio)
-library(here)
-library(english)
-library(glue)
-
-theme_set(theme_minimal())
-```
-
-```{r}
-# importing the data
-NCSH <- import(here("data","2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df")
-state <- import(here("data","fips_state.csv"))
-
-# Left_join to add states in the NCSH dataset
-final_data <- left_join(NCSH, state, by = "FIPSST")
-```
-
-```{r}
-# data prep
-selected_data <- final_data %>%
-  select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
-  janitor::clean_names() %>% # cleaning names
-  filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering data
-
-
-#If you wanted to have a separate list of the data variables that you can then call in select then this might be an alternative way, I also tried to simplify calling ACE 1 to 10: 
-
-data_list <- c("HHID", "HHLANGUAGE", "SC_AGE_YEARS", "SC_SEX", "MOMAGE", "HHCOUNT", "K6Q20", "K11Q60", "K11Q61", "K11Q62", "S9Q34", "K10Q14", paste0("ACE", 1:10), "RECOGABC", "A1_GRADE", "A2_GRADE", "K6Q60_R", "K6Q61_R", "FOODSIT", "K8Q30", "CONFIDENT", "povlev4_1718", "AdultEduc_1718", "WrkngPoor_1718", "ACEct_1718", "ACE2more_1718", "State")
-
-data_list
-
-test_selected_data <- final_data %>% 
-  select(any_of(data_list)) %>%
-  janitor::clean_names() %>% # cleaning names
-  filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering data
-
-head(test_selected_data)
-
-```
-
-```{r}
-# Function to recode missing data
-
-# vector with missing values in my dataset
-missing_vals <- c(90, 95, 99)
-
-# function that returns true if values in vector are equal to missing_vals. The function takes a vector x, and specified values of missing data
-recode_missing <- function(x, missing_vals = c(90, 95, 99)) {
-  test <- x %in% missing_vals
-  ifelse(test, NA, x)
-}
-
-# function that recodes missing values to NA. The function takes a dataframe with variables with missing data, and specified values of missing data
-recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
-  modify(df, ~recode_missing(.x, missing_vals)) # here uses the function created above
-}
-```
-
-
-```{r}
-
-
-#if you want to recode multiple variables with the same values
-
-recode_test <- recode_missing_df(selected_data) %>% 
-  drop_na() %>% 
-  mutate(stories_songs = factor(k6q61_r),
-         read = factor(k6q60_r)) %>% 
-  mutate_at(c("stories_songs","read"), ~(fct_recode(., 
-                                              "0 days" = "1",
-                                              "1-3 days" = "2",
-                                              "4-6 days" = "3",
-                                              "Every day" = "4")))
-
-
-# more data cleaning
-d <- recode_missing_df(selected_data) %>%
-  drop_na() %>% # dropping cases with missing data
-  mutate(stories_songs = factor(k6q61_r),
-         stories_songs = fct_recode(stories_songs,
-                           "0 days" = "1",
-                           "1-3 days" = "2",
-                           "4-6 days" = "3",
-                           "Every day" = "4"),
-         read = factor(k6q60_r),
-         read = fct_recode(read,
-                           "0 days" = "1",
-                           "1-3 days" = "2",
-                           "4-6 days" = "3",
-                           "Every day" = "4"),
-         confident = factor(confident),
-         confident = fct_recode(confident,
-                           "Completely confident" = "1",
-                           "Mostly confident" = "2",
-                           "Somewhat confident" = "3",
-                           "Not at all confident" = "4"),
-         how_well_demands = factor(k8q30),
-         how_well_demands = fct_recode(how_well_demands,
-                           "Very well" = "1",
-                           "Somewhat well" = "2",
-                           "Not very well" = "3",
-                           "Not at all" = "4"),
-         primary_cg_ed = factor(a1_grade),
-         primary_cg_ed = fct_recode(primary_cg_ed,
-                           "8th grade or less" = "1",
-                           "9th-12th grade; No diploma" = "2",
-                           "High School Graduate or GED" = "3",
-                           "Vocational, trade, or business school program" = "4",
-                           "Some College Credit, no Degree" = "5",
-                           "Associate Degree" = "6",
-                           "Bachelor’s Degree" = "7",
-                           "Master’s Degree" = "8",
-                           "Doctorate" = "9"),
-         home_language = factor(hhlanguage),
-         home_language = fct_recode(home_language,
-                          "English" = "1",
-                          "Spanish" = "2",
-                          "Other" = "3"),
-         child_sex = factor(sc_sex),
-         child_sex = fct_recode(child_sex,
-                          "Male" = "1",
-                          "Female" = "2"),
-         child_age = sc_age_years,
-         ACE = factor(ace2more_1718),
-         ACE = fct_recode(ACE,
-                          "Exp 1 ACE" = "2",
-                          "Exp 2 ACE" = "3")) %>%
-  select(hhid, child_sex, child_age, home_language, stories_songs, read, confident, how_well_demands, primary_cg_ed, ACE, state)
-```
-
-* Plots looking at number of children experiencing Adverse Childhood Experiences (ACE) in US states 
-
-```{r}
-# counting number of ACEs
-d2 <- d %>%
-  group_by(state, ACE) %>%
-  count(ACE) %>%
-  group_by(state) %>%
-  mutate(tot = sum(n))
-
-# Creating a column for label
-d2 <- d2 %>%
-  mutate(label =
-  glue("{str_to_title(as.english(tot))} Children experienced ACE"))
-
-# Plot for one state
-plot_alabama <- d2 %>%
-  filter(state == "Alabama") %>%
-  ggplot(aes(ACE, n)) +
-  geom_col(aes(fill = n)) +
-  scale_fill_distiller(type = "seq",
-                       limits = c(0, max(d2$n)),
-                       palette = "BuPu",
-                       direction = 1) +
-  ylim(0, max(d2$n)) +
-  coord_flip() +
-  labs(title = "Number of children that experienced ACEs: Alabama",
-       x = "Adverse Childhood Experiences",
-       y = "Number of children",
-       caption = unique(d2$label)) +
-  theme(legend.position = "none") #if you want to remove the legend from your plot
-
-#Producing plots for 51 states using pmap
-final_plots <- d2 %>% 
-  group_by(state, label) %>%
-  nest() %>%
-  mutate(plots = pmap(list(state, label, data),
-                      ~ggplot(..3, aes(ACE, n)) +
-                        geom_col(aes(fill = n)) +
-                        scale_fill_distiller(type = "seq",
-                                             limits = c(0, max(d2$n)),
-                                             palette = "BuPu",
-                                             direction = 1) +
-                        ylim(0, max(d2$n)) +
-                        coord_flip() +
-                        labs(title = glue("Number of children that experienced ACEs: {..1}"),
-                             x = "Adverse Childhood Experiences",
-                             y = "Number of Children",
-                             caption = ..2)))
-final_plots$plots[[5]]
-
-# Creating directory to save plots
-fs::dir_create(here::here("plots", "d2"))
-
-# Creating file path
-files <- str_replace_all(tolower(final_plots$state), " ", "-")
-paths <- here::here("plots", "d2", glue("{files}.png"))
-paths
-
-# saving plots
-walk2(paths, final_plots$plots, ggsave,
-      width = 9.5, 
-      height = 6.5,
-      dpi = 500)
-```
-
-* Examining 'Confidence in School Readiness' by 'Caregiver's Highest Level of Education'
-
-```{r}
-plot1_df <- d %>%
-  group_by(state, primary_cg_ed) %>%
-  count(confident) %>% 
-  mutate(prop_conf = round(n/sum(n), digits = 2)) %>%  
-  mutate(label =
-        glue("NCES Data from {str_to_title(state)}"))
-
-plot1 <- plot1_df  %>%
-  group_by(state, label) %>%
-  nest() %>%
-  mutate(plots = pmap(list(state, label, data),
-                      ~ggplot(..3, aes(primary_cg_ed, prop_conf, fill = confident)) +
-                      geom_bar(stat = "identity", position = "dodge") +
-                      coord_flip() +
-                      labs(title = glue("Confidence in School Preparedness Between \nLevels of Caregiver Education: {..1}"),
-                             x = "Caregiver's Highest Level of Education",
-                             y = "Proportion of Parents",
-                             caption = ..2) + 
-                        theme(plot.title.position = "plot"))) #If you want to align your plot flush to the left margin
-plot1$plots[[1]]
-
-```
-
-Saving plots for examining 'Confidence in School Readiness' by 'Caregiver's Highest Level of Education'
-
-```{r}
-# Creating directory to save plots
-
-fs::dir_create(here::here("plots", "plot1"))
-
-# Creating file path
-files <- str_replace_all(tolower(plot1$state), " ", "-")
-paths <- here::here("plots", "plot1", glue("schl-conf-and-edlevel-by-state_{files}.png"))
-paths
-
-#saving plots
-walk2(paths, plot1$plots, ggsave,
-      width = 9.5, 
-      height = 6.5,
-      dpi = 500)
-```
-
-* Examining'Confidence in School Readiness' by 'Frequency of Reading at Home'
-
-```{r}
-
-plot2_df <- d %>%
-  group_by(primary_cg_ed, home_language, read) %>%
-  count(confident) %>% 
-  mutate(perc_conf = 100*(round(n/sum(n), digits = 2))) %>%
-  mutate(label =
-        glue("NCES Data for parents reporting '{str_to_title(primary_cg_ed)}'"))
-
-plot2 <- plot2_df  %>%
-  group_by(primary_cg_ed, label) %>%
-  nest() %>%
-  mutate(plots = pmap(list(primary_cg_ed, label, data),
-                      ~ggplot(..3, aes(read, perc_conf, fill = confident)) +
-                      geom_bar(stat = "identity", position = "dodge") +
-                      coord_flip() +
-                      labs(title = "Confidence in School Preparedness Between \nLevels Frequency of Reading at Home",
-                           subtitle = glue("Caregiver Education Level: '{..1}'"),
-                             x = "Frequency of Reading at Home",
-                             y = "Percentage of Parent Reports",
-                             caption = ..2)))
-plot2$plots[[5]]
-
-```
-
-Saving plots for examining 'Confidence in School Readiness' by 'Frequency of Reading at Home'
-
-```{r}
-# Creating directory to save plots
-fs::dir_create(here::here("plots", "plot2"))
-
-# Creating file path
-files <- str_replace_all(tolower(plot2$primary_cg_ed), " ", "-")
-paths <- here::here("plots", "plot2", glue("schl-conf-and-read-by-edlevel_{files}.png"))
-paths
-
-#saving plots
-walk2(paths, plot2$plots, ggsave,
-      width = 9.5, 
-      height = 6.5,
-      dpi = 500)
-```
->>>>>>> master
