@@ -149,7 +149,6 @@ bar_plot <- function(df, x) {
 
 bar_plot(d, d$read) +
   labs(x = 'Number of days reading',
-       y = 'Count',
        title = 'Confidence in kindergarten readiness by frequency of reading at home') +
 facet_wrap(~confident)
   
@@ -193,18 +192,20 @@ final_plots <- d2 %>%
   nest() %>%
   mutate(plots = pmap(list(state, label, data),
                       ~ggplot(..3, aes(ACE, n)) +
-                        geom_col(aes(fill = n)) +
+                        geom_col(aes(fill = n), show.legend = FALSE) +
                         scale_fill_distiller(type = "seq",
                                              limits = c(0, max(d2$n)),
                                              palette = "BuPu",
                                              direction = 1) +
                         ylim(0, max(d2$n)) +
                         coord_flip() +
-                        labs(title = glue("Number of children that experienced ACEs: {..1}"),
-                             x = "Adverse Childhood Experiences",
-                             y = "Number of Children",
-                             caption = ..2)))
-final_plots$plots[[5]]
+                        geom_text(aes(label = n), hjust = 2, size = 6) +
+                        labs(title = glue("Number of children that experienced ACEs:
+                        {..1}"),
+                        x = "Adverse Childhood Experiences",
+                        y = "Number of Children",
+                        caption = ..2)))
+final_plots$plots[[6]]
 
 # Creating directory to save plots
 fs::dir_create(here::here("plots", "d2"))
