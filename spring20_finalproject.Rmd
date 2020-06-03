@@ -19,13 +19,14 @@ library(glue)
 theme_set(theme_minimal())
 ```
 
-```{r}
+```{r, data}
 # importing the data
+
 NCSH <- import(here("data","2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df")
 state <- import(here("data","fips_state.csv"))
-
-# Left_join to add states in the NCSH dataset
+#Left_join to add states in the NCSH dataset
 final_data <- left_join(NCSH, state, by = "FIPSST")
+
 ```
 
 ```{r}
@@ -36,7 +37,7 @@ selected_data <- final_data %>%
   filter(sc_age_years <= 5, ace2more_1718 > 1) # filtering data
 ```
 
-```{r}
+```{r, function 1}
 # Function to recode missing data
 
 # vector with missing values in my dataset
@@ -54,9 +55,25 @@ recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
 }
 ```
 
+```{r}
+d1 <- recode_missing_df(selected_data) %>%
+ drop_na() %>% 
+  mutate_at(vars(k6q61_r, k6q60_r), 
+            funs(factor(.,
+                        levels = c(
+                          "0 days",
+                          "1-3 days",
+                          "4-6 days",
+                          "Everyday"),
+                        ordered = TRUE)))
+
+```
+
 
 ```{r}
 # more data cleaning
+
+
 d <- recode_missing_df(selected_data) %>%
   drop_na() %>% # dropping cases with missing data
   mutate(stories_songs = factor(k6q61_r),
@@ -109,6 +126,31 @@ d <- recode_missing_df(selected_data) %>%
                           "Exp 1 ACE" = "2",
                           "Exp 2 ACE" = "3")) %>%
   select(hhid, child_sex, child_age, home_language, stories_songs, read, confident, how_well_demands, primary_cg_ed, ACE, state)
+```
+
+
+
+```{r, function 2}
+bar_plot <- function(df, x) {
+  plot_graph <- ggplot({{df}}, aes({{x}})) +
+    geom_bar(aes(fill = x), show.legend = FALSE) +
+    coord_flip()
+  
+  if(!as.numeric({{x}})) {
+    stop()
+  }
+  else{
+    plot_graph
+  }
+  return(plot_graph)
+}
+
+bar_plot(d, d$read) +
+  labs(x = 'Number of days reading',
+       y = 'Count') +
+  facet_wrap(~confident)
+  
+
 ```
 
 * Plots looking at number of children experiencing Adverse Childhood Experiences (ACE) in US states 
