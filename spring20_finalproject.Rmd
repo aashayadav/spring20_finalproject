@@ -27,6 +27,21 @@ Area of Improvement (see codes in their respective code chunk):
 
 3) I included some minor formatting codes for ggplot such as hidding the legend and left justify the plot title. 
 
+JP's Peer Review
+
+First off, sorry for the late peer review. For some reason I thought these were due Wednesday. 
+
+Areas of strength:
+1.	I thought it was smart that you all changed the values for your variables. This was something I was interested in for our project since we weren’t sure to keep it to the codebook or give variables more meaningful names. I think after seeing this project, making the changes makes more sense.  
+2.	I like the meaningful paths for your plots when saving them. Making it so that if someone wants to read just plot they can. 
+3.	I think having a function for detecting missing values is a smart use of a function. I like that you have two functions, one for dataframes and the other for vectors. 
+
+What I learned:
+1.	I think the coolest thing I learned was using your function and then piping all the rest of your code into that function.
+
+Areas of improvement:
+1.	I’m not sure about using a sequence pattern for the scale of your plots. Since the values are your n, it may be better just to use a different color palette and include the n within the plots. I have made this change with some small changes to your code. 
+2.	Your second plot was also kind of difficult to view from other states, so I facetted them, which you can see if you like it more. Its interesting that data is only available for some caregiver education. 
 
 
 
@@ -205,16 +220,16 @@ final_plots <- d2 %>%
   mutate(plots = pmap(list(state, label, data),
                       ~ggplot(..3, aes(ACE, n)) +
                         geom_col(aes(fill = n)) +
-                        scale_fill_distiller(type = "seq",
-                                             limits = c(0, max(d2$n)),
-                                             palette = "BuPu",
-                                             direction = 1) +
+                        scale_fill_distiller(palette = "Dark2") +
                         ylim(0, max(d2$n)) +
                         coord_flip() +
+                        geom_text(aes(label = n), hjust = 2, size = 6) +
                         labs(title = glue("Number of children that experienced ACEs: {..1}"),
                              x = "Adverse Childhood Experiences",
                              y = "Number of Children",
-                             caption = ..2)))
+                             caption = ..2) +
+                          theme(legend.position = "none")))
+
 final_plots$plots[[5]]
 
 # Creating directory to save plots
@@ -253,7 +268,10 @@ plot1 <- plot1_df  %>%
                              x = "Caregiver's Highest Level of Education",
                              y = "Proportion of Parents",
                              caption = ..2) + 
-                        theme(plot.title.position = "plot"))) #If you want to align your plot flush to the left margin
+                        facet_wrap(~confident, ncol = 1) +
+                        geom_text(aes(label = prop_conf), hjust = -.50, size = 2) +
+                        theme(plot.title.position = "plot",
+                              legend.position = "none"))) #If you want to align your plot flush to the left margin
 plot1$plots[[1]]
 
 ```
