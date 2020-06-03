@@ -148,7 +148,8 @@ bar_plot <- function(df, x) {
 
 bar_plot(d, d$read) +
   labs(x = 'Number of days reading',
-       y = 'Count') +
+       y = 'Count',
+       title = 'Confidence in kindergarten readiness by frequency of reading at home') +
   facet_wrap(~confident)
   
 
