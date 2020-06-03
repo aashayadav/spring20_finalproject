@@ -16,23 +16,30 @@ library(rio)
 library(here)
 library(english)
 library(glue)
+library(fs)
 
 theme_set(theme_minimal())
 ```
 
-```{r, data}
+```{r, importing data}
 # importing the data
-
 NCSH <- import(here("data","2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df")
 state <- import(here("data","fips_state.csv"))
-#Left_join to add states in the NCSH dataset
+
+# Left_join to add states in the NCSH dataset
 final_data <- left_join(NCSH, state, by = "FIPSST")
 
+# alternative way for cases in which there are more than 2 files
+# files <- dir_ls(here::here("data"), glob = "*.csv")
+# 
+# batch <- map(files, read_csv)
+#
+# reduce(batch, left_join, by = "FIPSST")
 ```
 
 
 ```{r, data prep}
-# data prep
+
 selected_data <- final_data %>%
   select(HHID, HHLANGUAGE, SC_AGE_YEARS, SC_SEX, MOMAGE, HHCOUNT, K6Q20, K11Q60, K11Q61, K11Q62, S9Q34, K10Q14, ACE1, ACE3, ACE4, ACE5, ACE6, ACE7, ACE8, ACE9, ACE10, RECOGABC, A1_GRADE, A2_GRADE, K6Q60_R, K6Q61_R, FOODSIT, K8Q30, CONFIDENT, povlev4_1718, AdultEduc_1718, WrkngPoor_1718, ACEct_1718, ACE2more_1718, State) %>%
   janitor::clean_names() %>% # cleaning names
@@ -58,9 +65,7 @@ recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
 ```
 
 
-```{r, more data cleaning}
-# more data cleaning
-
+```{r, data cleaning}
 
 d <- recode_missing_df(selected_data) %>%
   drop_na() %>% # dropping cases with missing data
@@ -113,12 +118,13 @@ d <- recode_missing_df(selected_data) %>%
 
 
 ```{r, function 2}
+# add this to the shiny app so peep can interact and change the variables from a drop down menu
 bar_plot <- function(df, x) {
-  plot_graph <- ggplot({{df}}, aes({{x}})) +
-    geom_bar(aes(fill = x), show.legend = FALSE) +
+  plot_graph <- ggplot(df, aes({{x}})) +
+    geom_bar(aes(fill = {{x}}), show.legend = FALSE) +
     coord_flip()
   
-  if(!as.numeric({{x}})) {
+  if(!as.numeric(pull(df, {{x}}))) {
     stop()
   }
   else{
@@ -127,12 +133,10 @@ bar_plot <- function(df, x) {
   return(plot_graph)
 }
 
-bar_plot(d, d$read) +
+bar_plot(d, read) +
   labs(x = 'Number of days reading',
        title = 'Confidence in kindergarten readiness by frequency of reading at home') +
 facet_wrap(~confident)
-  
-
 ```
 
 
@@ -158,7 +162,6 @@ plot1 <- plot1_df  %>%
                              y = "Proportion of Parents",
                              caption = ..2)))
 plot1$plots[[20]]
-
 ```
 
 Saving plots for examining 'Confidence in School Readiness' by 'Caregiver's Highest Level of Education'
