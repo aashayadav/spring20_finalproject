@@ -55,15 +55,18 @@ ui <- fluidPage(
     p("[insert rubric and guide for where to find for Daniel]"),
     
     # Application title
-    navbarPage("Interactive Data Visualizations",
+    navbarPage("Some Title",
                ####################### Ale's Panel ######################
-               tabPanel("El Gráfico",
-                        h3("Examining X by Y"),
-                        p("This visualization shows good stuff."),
+               tabPanel("Percentage by Variable",
+                        h3("Examining percentages"),
+                        p("This table shows good stuff."),
                         
                         # Show a plot of the generated distribution
                         mainPanel("Cool Histogram", plotOutput("distPlot2")),
-               ),
+               
+                        
+                        
+                        ), # this closes my tabPanel
                
                
                ####################### Asha's Panel ######################
