@@ -146,8 +146,70 @@ files <- str_replace_all(tolower(plot1$state), " ", "-")
 paths <- here::here("plots", "plot1", glue("schl-conf-and-edlevel-by-state_{files}.png"))
 paths
 
-#saving plots
+# saving plots
 walk2(paths, plot1$plots, ggsave,
       width = 9.5, 
       height = 6.5,
       dpi = 500)
+
+## to use map_df and map_dbl 
+## Daniel suggested creating a function that looks at one column and calculates the proportion (like Mark did), then another function that loops that function through all the colums in the data frame. 
+## We can explore adding a table
+
+##### this one doesn't use a variant of map, so not using it #######
+
+# one case
+prop_read <- d %>%
+  count(read) %>%
+  mutate(prop_read = round(n/sum(n), digits = 2))
+
+# generalizing to function
+prop_tbl <- function(df, x) {
+  df %>%
+    count({{x}}) %>%
+    mutate(proportion = round(n/sum(n), digits = 2))
+}
+prop_tbl(d, read)
+
+#####################################################################
+
+######### Proportions of each level in a vector #### uses map_* variant
+
+prop_level <- function(x) {
+  prop <- purrr::map_dbl(split(x, x), length) / length(x)
+  prop
+}
+
+prop_level(d$read)
+
+##### selecting factor vars in dataframe ##### 
+only_fct <- function(df) {
+  select_fct <- dplyr::select_if(df, is.factor)
+  select_fct
+}
+
+only_fct(d)
+
+######## FULL FUNCTION ######
+prop_var <- function(df, var) {
+  select_factor <- only_fct(df)
+  prop <- map(select_factor, prop_level)
+  tibble(Category = names(prop[[var]]),
+         Percentage = round(prop[[var]], 4)*100)
+}
+
+prop_var(d, "read") %>% 
+  reactable::reactable()
+
+# how to translate to shiny? 
+# in ui
+selectInput("var", "Select Variable", 
+            choices = c("read", "confidence", "etc."))
+
+reactableOutput("tbl")
+
+# in your server
+output$tbl <- renderReactable({
+  prop_df(d, input$var) %>% 
+    reactable::reactable()
+})
