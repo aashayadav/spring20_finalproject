@@ -159,17 +159,17 @@ walk2(paths, plot1$plots, ggsave,
 ##### this one doesn't use a variant of map, so not using it #######
 
 # one case
-prop_read <- d %>%
-  count(read) %>%
-  mutate(prop_read = round(n/sum(n), digits = 2))
-
-# generalizing to function
-prop_tbl <- function(df, x) {
-  df %>%
-    count({{x}}) %>%
-    mutate(proportion = round(n/sum(n), digits = 2))
-}
-prop_tbl(d, read)
+# prop_read <- d %>%
+#   count(read) %>%
+#   mutate(prop_read = round(n/sum(n), digits = 2))
+# 
+# # generalizing to function
+# prop_tbl <- function(df, x) {
+#   df %>%
+#     count({{x}}) %>%
+#     mutate(proportion = round(n/sum(n), digits = 2))
+# }
+# prop_tbl(d, read)
 
 #####################################################################
 
