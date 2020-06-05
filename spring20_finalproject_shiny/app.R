@@ -30,7 +30,7 @@ ui <- fluidPage(
     
     # Application title
     navbarPage("Interactive Data Visualizations",
-               ####################### Asha's Panel ######################
+               ####################### Ale's Panel ######################
                tabPanel("El Gráfico",
                         h3("Examining X by Y"),
                         p("This visualization shows good stuff."),
@@ -40,7 +40,7 @@ ui <- fluidPage(
                ),
                
                
-               ####################### Ale's Panel ######################
+               ####################### Asha's Panel ######################
                tabPanel("El Cuadro",
                         h3("Dope Table"),
                         p("This table shows good stuff."),
