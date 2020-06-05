@@ -21,7 +21,14 @@ library(fs)
 theme_set(theme_minimal())
 ```
 
-```{r, importing data}
+
+```{r, data}
+# Batch loading
+#files <- dir_ls(here::here("data"), glob = "*.csv")
+
+#batch <- map_df(files, read_csv)
+#batch
+
 # importing the data
 NCSH <- import(here("data","2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df")
 state <- import(here("data","fips_state.csv"))
@@ -114,6 +121,13 @@ d <- recode_missing_df(selected_data) %>%
                                               "4-6 days" = "3",
                                               "Every day" = "4"))) %>%
   select(hhid, child_sex, child_age, home_language, stories_songs, read, confident, how_well_demands, primary_cg_ed, ACE, state)
+```
+
+
+```{r}
+d %>%
+  map()
+
 ```
 
 
