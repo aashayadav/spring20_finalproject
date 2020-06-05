@@ -20,16 +20,17 @@ library(ggplot2)
 
 theme_set(theme_minimal(15))
 
-
-# Define UI for application that draws a histogram
+####### ~!~ Define UI for application that draws a histogram ~!~ #######
 ui <- fluidPage(
-    titlePanel("Bomb-Ass Shiny App!"),
+    titlePanel("Our Shiny App!"),
     h2("National Survey of Children’s Health (NSCH) Data"),
     p("The purpose of this app is to alow those who are interested in examining the National Survey of Children's Health data, specifically looking at the relationships between parent expectations for school readiness and reading behaviors among levels of parental education"),
-    p("The data used for this app can be accessed on the", a(href="https://www.census.gov/programs-surveys/nsch/data.html", "US Census Bureau's website.")),
+    p("The data used for this app is publicly available on the", a(href="https://www.census.gov/programs-surveys/nsch/data.html", "US Census Bureau's website.")),
+    p("[insert rubric and guide for where to find for Daniel]"),
     
     # Application title
     navbarPage("Interactive Data Visualizations",
+               ####################### Asha's Panel ######################
                tabPanel("El Gráfico",
                         h3("Examining X by Y"),
                         p("This visualization shows good stuff."),
@@ -38,9 +39,11 @@ ui <- fluidPage(
                         mainPanel("Cool Histogram", plotOutput("distPlot2")),
                ),
                
+               
+               ####################### Ale's Panel ######################
                tabPanel("El Cuadro",
-                        h3("Examining X by Y"),
-                        p("This visualization shows good stuff."),
+                        h3("Dope Table"),
+                        p("This table shows good stuff."),
                         
                         # Sidebar with a slider input for number of bins 
                         sidebarLayout(
@@ -57,6 +60,8 @@ ui <- fluidPage(
                         )
                ),
                
+               
+               ####################### Mark's Panel ######################
                tabPanel("La Conspiración",
                         h3("Examining X by Y"),
                         p("This visualization shows good stuff."),
@@ -68,49 +73,42 @@ ui <- fluidPage(
 )             
 
 
-# Define server logic required to create visualizations
+####### ~!~ Define server logic required to create visualizations ~!~ #######
 server <- function(input, output) {
     
-    d <- import("~/Desktop/Dropbox/edld610_functional_programming_R/spring20_finalproject/spring20_finalproject_shiny/nsch.csv") # data you're working with
+d <- import(here("spring20_finalproject_shiny", "ncsh.csv")) # data you're working with
     
-    # First visual
+    ####################### Asha's Home ######################
     output$distPlot <- renderPlot({
         
         bar_plot <- function(df, x) {
-            plot_graph <- ggplot({{df}}, aes({{x}})) +
-                geom_bar(aes(fill = x), show.legend = FALSE) +
+            plot_graph <- ggplot(df, aes({{x}})) +
+                geom_bar(aes(fill = {{x}}), show.legend = FALSE) +
                 coord_flip()
-            #if(!is.numeric({{x}})) { #I wasn't able to get it tow work with this code
-            #  stop()
+            
+            #if(!is.numeric(pull(df, {{x}}))) {
+             #   stop()
             #}
             #else{
-            # plot_graph
+             #   plot_graph
             #}
             #return(plot_graph)
         }
         
-         bar_plot(d, d$read) +
+        bar_plot(d, read) +
             labs(x = 'Number of days reading',
-                 title = 'Confidence in kindergarten readiness by \nfrequency of reading at home') +
+                 title = 'Confidence in kindergarten readiness by frequency of reading at home') +
             facet_wrap(~confident)
     })
     
-    # Draw a second one
-    output$distPlot1 <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        bins <- seq(min(x), max(x), length.out = as.numeric(input$bins_hist) + 1)
-        
-        # draw the histogram with the specified number of bins
-        plot1_df <- d %>%
-            group_by(state, primary_cg_ed) %>%
-            count(confident) %>% 
-            mutate(prop_conf = round(n/sum(n), digits = 2))
-        
-        p2 <- hist(plot1_df$prop_conf, breaks = bins, col = 'darkgray', border = 'white')
-        print(p2)
+    
+    ####################### Ale's Home ######################
+    output$distPlot1 <- renderTable({
+     
     })
 
-    # Draw a visualization
+    
+    ####################### Mark's Home ######################
     output$distPlot2 <- renderPlot({
         plot1_df <- d %>%
             group_by(state, primary_cg_ed) %>%
@@ -132,8 +130,6 @@ server <- function(input, output) {
                                          caption = ..2)))
         print(plot1[[1]])
     })
-    
-    
 }
 
 # Run the application 
