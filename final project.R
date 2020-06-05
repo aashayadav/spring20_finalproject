@@ -186,7 +186,7 @@ prop_level(d$read)
 only_fct <- function(df) {
   select_fct <- dplyr::select_if(df, is.factor)
   select_fct
-}
+} # for some reason the factorization gets lost in the data-prep_shiny.R file, so not using this
 
 only_fct(d)
 

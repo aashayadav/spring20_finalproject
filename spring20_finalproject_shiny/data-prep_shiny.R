@@ -88,5 +88,5 @@ d <- recode_missing_df(selected_data) %>%
 
 
 # Export to csv for shiny app use
-rio::export(d, "spring20_finalproject_shiny/ncsh.csv")
+rio::export(d, "spring20_finalproject_shiny.csv")
 

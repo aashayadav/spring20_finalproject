@@ -20,6 +20,32 @@ library(ggplot2)
 
 theme_set(theme_minimal(15))
 
+
+d <- import(here("spring20_finalproject_shiny", "ncsh.csv")) # data you're working with
+
+#################### space to load functions start ####################
+
+# Proportions of each level in a vector #### uses map_* variant
+prop_level <- function(x) {
+    prop <- purrr::map_dbl(split(x, x), length) / length(x)
+    prop
+}
+
+prop_level(d$home_language)
+
+# function that takes percentage of each var
+prop_var <- function(df, var) {
+    prop <- map(df, prop_level)
+    tibble(Category = names(prop[[var]]),
+           Percentage = round(prop[[var]], 4)*100)
+}
+
+prop_var(d, "state") %>% 
+    reactable::reactable()
+
+#################### space to load functions end ####################
+
+
 ####### ~!~ Define UI for application that draws a histogram ~!~ #######
 ui <- fluidPage(
     titlePanel("Our Shiny App!"),
@@ -76,7 +102,7 @@ ui <- fluidPage(
 ####### ~!~ Define server logic required to create visualizations ~!~ #######
 server <- function(input, output) {
     
-d <- import(here("spring20_finalproject_shiny", "ncsh.csv")) # data you're working with
+
     
     ####################### Asha's Home ######################
     output$distPlot <- renderPlot({
