@@ -6,8 +6,6 @@ library(english)
 library(glue)
 library(fs)
 
-theme_set(theme_minimal())
-
 # importing the data
 NCSH <- import(here("data","2017-2018 NSCH_Topical_DRC_Dec 2019.csv"), setclass = "tbl_df")
 state <- import(here("data","fips_state.csv"))
@@ -87,6 +85,11 @@ d <- recode_missing_df(selected_data) %>%
   select(hhid, child_sex, child_age, home_language, stories_songs, read, confident, how_well_demands, primary_cg_ed, ACE, state)
 
 
+str(d)
 # Export to csv for shiny app use
-rio::export(d, "spring20_finalproject_shiny.csv")
+rio::export(d, here("spring20_finalproject_shiny", "ncsh.rda"))
+d <- rio::import(here("spring20_finalproject_shiny", "ncsh.rda"))
+
+factorize(d)
+str(d)
 

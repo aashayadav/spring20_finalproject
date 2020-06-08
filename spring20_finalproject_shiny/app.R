@@ -1,11 +1,3 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
 
 library(shiny)
 library(reactable)
@@ -21,8 +13,12 @@ library(ggplot2)
 theme_set(theme_minimal(15))
 
 
-d <- import(here("spring20_finalproject_shiny", "ncsh.csv")) %>%
-    map_df(factor) # for some reason we lost the factorization of variables when importing the data set, thus we re-factorized all variables here.
+d <- import(here("spring20_finalproject_shiny", "ncsh.csv"), format = "csv") %>%
+    map_if(is.character, as.factor) %>% 
+    as_tibble()
+
+
+str(d)
 
 #################### space to load functions start ####################
 
@@ -140,25 +136,30 @@ server <- function(input, output) {
     
     ####################### Mark's Home ######################
     output$distPlot2 <- renderPlot({
-        plot1_df <- d %>%
+        
+        str(d)
+        
+        graphs_d <- d %>%
+            mutate(state == as.character(state))
             group_by(state, primary_cg_ed) %>%
             count(confident) %>% 
             mutate(prop_conf = round(n/sum(n), digits = 2)) #%>%  
             #mutate(label = glue("NCES Data from {str_to_title(state)}"))
-        
-        # NOT SURE HOW TO SHOW JUST ONE VIZ
-        plot1 <- plot1_df  %>%
-            group_by(state, label) %>%
+graphs_d
+        # create list of graphs
+        graphs<- graphs_d  %>%
+            group_by(state) %>%
             nest() %>%
-            mutate(plots = pmap(list(state, label, data),
-                                ~ggplot(..3, aes(primary_cg_ed, prop_conf, fill = confident)) +
+            mutate(plots = pmap(list(state, data),
+                                ~ggplot(..2, aes(primary_cg_ed, prop_conf, fill = confident)) +
                                     geom_bar(stat = "identity", position = "dodge") +
                                     coord_flip() +
                                     labs(title = glue("Confidence in School Preparedness Between \nLevels of Caregiver Education: {..1}"),
                                          x = "Caregiver's Highest Level of Education",
                                          y = "Proportion of Parents",
                                          caption = ..2)))
-        print(plot1[[1]])
+    graphs$plots[[1]]
+
     })
 }
 
