@@ -17,6 +17,7 @@ library(english)
 library(glue)
 library(here)
 library(ggplot2)
+library(purrr)
 
 theme_set(theme_minimal(15))
 
@@ -96,7 +97,7 @@ ui <- fluidPage(
                         p("This visualization shows good stuff."),
                         
                         # Show a plot of the generated distribution
-                        mainPanel("Cool Plot", plotOutput("distPlot1")),
+                        mainPanel("Cool Plot", plotOutput("distPlot1", width = "100%")),
                )
     )
 )             
@@ -105,7 +106,12 @@ ui <- fluidPage(
 ####### ~!~ Define server logic required to create visualizations ~!~ #######
 server <- function(input, output) {
     
-
+    
+    ####################### Ale's Home ######################
+    output$distPlot <- renderTable({
+        
+    })
+    
     
     ####################### Asha's Home ######################
     output$distPlot <- renderPlot({
@@ -130,34 +136,29 @@ server <- function(input, output) {
             facet_wrap(~confident)
     })
     
-    
-    ####################### Ale's Home ######################
-    output$distPlot1 <- renderTable({
-     
-    })
-
-    
     ####################### Mark's Home ######################
-    output$distPlot2 <- renderPlot({
+    output$distPlot1 <- renderPlot({
+        
         plot1_df <- d %>%
             group_by(state, primary_cg_ed) %>%
             count(confident) %>% 
-            mutate(prop_conf = round(n/sum(n), digits = 2)) #%>%  
-            #mutate(label = glue("NCES Data from {str_to_title(state)}"))
+            mutate(prop_conf = round(n/sum(n), digits = 2)) %>% 
+            mutate(label = glue("NCES Data from state"))
+        #mutate(label = glue("NCES Data from {str_to_title(state)}"))
         
         # NOT SURE HOW TO SHOW JUST ONE VIZ
         plot1 <- plot1_df  %>%
-            group_by(state, label) %>%
+            group_by(state) %>%
             nest() %>%
-            mutate(plots = pmap(list(state, label, data),
-                                ~ggplot(..3, aes(primary_cg_ed, prop_conf, fill = confident)) +
-                                    geom_bar(stat = "identity", position = "dodge") +
+            mutate(plots = pmap(list(state, data),
+                                ~ggplot(..2, aes(primary_cg_ed, prop_conf, fill = confident)) +
+                                    geom_bar(stat = "identity", position = "stack") +
                                     coord_flip() +
-                                    labs(title = glue("Confidence in School Preparedness Between \nLevels of Caregiver Education: {..1}"),
+                                    labs(title = glue("Confidence in School Preparedness \nBetween Levels of Caregiver Education: \n{..1}"),
                                          x = "Caregiver's Highest Level of Education",
                                          y = "Proportion of Parents",
                                          caption = ..2)))
-        print(plot1[[1]])
+        plot1$plots[[2]]
     })
 }
 
