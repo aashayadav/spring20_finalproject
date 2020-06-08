@@ -17,12 +17,12 @@ library(english)
 library(glue)
 library(here)
 library(ggplot2)
-library(purrr)
 
 theme_set(theme_minimal(15))
 
 
-d <- import(here("spring20_finalproject_shiny", "ncsh.csv")) # data you're working with
+d <- import(here("spring20_finalproject_shiny", "ncsh.csv")) %>%
+    map_df(factor) # for some reason we lost the factorization of variables when importing the data set, thus we re-factorized all variables here.
 
 #################### space to load functions start ####################
 
@@ -36,12 +36,12 @@ prop_level(d$home_language)
 
 # function that takes percentage of each var
 prop_var <- function(df, var) {
-    prop <- map(df, prop_level)
+    prop <- purrr::map(df, prop_level)
     tibble(Category = names(prop[[var]]),
            Percentage = round(prop[[var]], 4)*100)
 }
 
-prop_var(d, "state") %>% 
+prop_var(d, "read") %>% 
     reactable::reactable()
 
 #################### space to load functions end ####################
@@ -56,18 +56,18 @@ ui <- fluidPage(
     p("[insert rubric and guide for where to find for Daniel]"),
     
     # Application title
-    navbarPage("Some Title",
+    navbarPage("Table",
                ####################### Ale's Panel ######################
-               tabPanel("Percentage by Variable",
-                        h3("Examining percentages"),
-                        p("This table shows good stuff."),
-                        
-                        # Show a plot of the generated distribution
-                        mainPanel("Cool Histogram", plotOutput("distPlot2")),
-               
-                        
-                        
-                        ), # this closes my tabPanel
+               tabPanel("Percentages by Variable",
+                        selectInput("var",
+                                    "Variable:",
+                                    choices = c(
+                                        "None" = "none",
+                                        
+                                    ))
+                   
+                   
+               ), # this closes my tabPanel
                
                
                ####################### Asha's Panel ######################
@@ -97,7 +97,7 @@ ui <- fluidPage(
                         p("This visualization shows good stuff."),
                         
                         # Show a plot of the generated distribution
-                        mainPanel("Cool Plot", plotOutput("distPlot1", width = "100%")),
+                        mainPanel("Cool Plot", plotOutput("distPlot1")),
                )
     )
 )             
@@ -106,12 +106,7 @@ ui <- fluidPage(
 ####### ~!~ Define server logic required to create visualizations ~!~ #######
 server <- function(input, output) {
     
-    
-    ####################### Ale's Home ######################
-    output$distPlot <- renderTable({
-        
-    })
-    
+
     
     ####################### Asha's Home ######################
     output$distPlot <- renderPlot({
@@ -136,29 +131,34 @@ server <- function(input, output) {
             facet_wrap(~confident)
     })
     
+    
+    ####################### Ale's Home ######################
+    output$distPlot1 <- renderTable({
+     
+    })
+
+    
     ####################### Mark's Home ######################
-    output$distPlot1 <- renderPlot({
-        
+    output$distPlot2 <- renderPlot({
         plot1_df <- d %>%
             group_by(state, primary_cg_ed) %>%
             count(confident) %>% 
-            mutate(prop_conf = round(n/sum(n), digits = 2)) %>% 
-            mutate(label = glue("NCES Data from state"))
-        #mutate(label = glue("NCES Data from {str_to_title(state)}"))
+            mutate(prop_conf = round(n/sum(n), digits = 2)) #%>%  
+            #mutate(label = glue("NCES Data from {str_to_title(state)}"))
         
         # NOT SURE HOW TO SHOW JUST ONE VIZ
         plot1 <- plot1_df  %>%
-            group_by(state) %>%
+            group_by(state, label) %>%
             nest() %>%
-            mutate(plots = pmap(list(state, data),
-                                ~ggplot(..2, aes(primary_cg_ed, prop_conf, fill = confident)) +
-                                    geom_bar(stat = "identity", position = "stack") +
+            mutate(plots = pmap(list(state, label, data),
+                                ~ggplot(..3, aes(primary_cg_ed, prop_conf, fill = confident)) +
+                                    geom_bar(stat = "identity", position = "dodge") +
                                     coord_flip() +
-                                    labs(title = glue("Confidence in School Preparedness \nBetween Levels of Caregiver Education: \n{..1}"),
+                                    labs(title = glue("Confidence in School Preparedness Between \nLevels of Caregiver Education: {..1}"),
                                          x = "Caregiver's Highest Level of Education",
                                          y = "Proportion of Parents",
                                          caption = ..2)))
-        plot1$plots[[2]]
+        print(plot1[[1]])
     })
 }
 
