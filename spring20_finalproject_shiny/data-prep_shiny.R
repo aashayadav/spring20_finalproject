@@ -1,4 +1,5 @@
 # DATA PREP FILE FOR SHINY APP #
+
 library(tidyverse)
 library(rio)
 library(here)
@@ -60,8 +61,8 @@ d <- recode_missing_df(selected_data) %>%
                                     "Vocational, trade, or business school program" = "4",
                                     "Some College Credit, no Degree" = "5",
                                     "Associate Degree" = "6",
-                                    "Bachelor’s Degree" = "7",
-                                    "Master’s Degree" = "8",
+                                    "Bachelor's Degree" = "7",
+                                    "Master's Degree" = "8",
                                     "Doctorate" = "9"),
          home_language = factor(hhlanguage),
          home_language = fct_recode(home_language,
@@ -89,4 +90,3 @@ d <- recode_missing_df(selected_data) %>%
 
 # Export to csv for shiny app use
 rio::export(d, "spring20_finalproject_shiny.csv")
-

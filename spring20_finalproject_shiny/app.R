@@ -88,24 +88,16 @@ ui <- fluidPage(
                
                
                ####################### Asha's Panel ######################
-               tabPanel("El Cuadro",
-                        h3("Dope Table"),
-                        p("This table shows good stuff."),
-                        
-                        # Sidebar with a slider input for number of bins 
-                        sidebarLayout(
-                            sidebarPanel(
-                                sliderInput("bins_tbl",
-                                            "Number of bins:",
-                                            min = 0,
-                                            max = 1,
-                                            value = .5)
-                            ),
-                            
-                            # Show a plot of the generated distribution
-                            mainPanel("Cool Distribution", plotOutput("distPlot")),
-                        )
-               ),
+               tabPanel("Kindergarten readiness",
+                        inputPanel(
+                          selectInput('x', 'Choose the variable', choices = c("Child sex" = "child_sex",
+                                                            "Home language" = "home_language",
+                                                            "Sing songs" = "stories_songs",
+                                                            "Read" = "read"),
+                                      selected = "read")
+                          ),
+                        mainPanel(plotOutput("distplot"))
+               ), # closes Asha's tab panel
                
                
                ####################### Mark's Panel ######################
@@ -114,40 +106,25 @@ ui <- fluidPage(
                         p("This visualization shows good stuff."),
                         
                         # Show a plot of the generated distribution
-                        mainPanel("Cool Plot", plotOutput("distPlot1")),
+                        mainPanel("Cool Plot", plotOutput("distPlot1"))
                )
     )
-)             
+    )
 
 
 ####### ~!~ Define server logic required to create visualizations ~!~ #######
 server <- function(input, output) {
-    
 
-    
     ####################### Asha's Home ######################
-    output$distPlot <- renderPlot({
-        
-        bar_plot <- function(df, x) {
-            plot_graph <- ggplot(df, aes({{x}})) +
-                geom_bar(aes(fill = {{x}}), show.legend = FALSE) +
-                coord_flip()
-            
-            #if(!is.numeric(pull(df, {{x}}))) {
-             #   stop()
-            #}
-            #else{
-             #   plot_graph
-            #}
-            #return(plot_graph)
-        }
-        
-        bar_plot(d, read) +
-            labs(x = 'Number of days reading',
-                 title = 'Confidence in kindergarten readiness by frequency of reading at home') +
-            facet_wrap(~confident)
-    })
-    
+    output$distplot <- renderPlot({
+      ggplot(d, aes_string(x = input$x)) +
+          geom_bar(aes_string(fill= input$x)) +
+          coord_flip() +
+        facet_wrap(~confident) +
+        labs(title = "Parents' confidence in child's kindergarten readiness")
+      })
+
+
     
     ####################### Ale's Home ######################
     output$tbl <- renderReactable({
@@ -179,6 +156,5 @@ server <- function(input, output) {
         print(plot1[[1]])
     })
 }
-
 # Run the application 
 shinyApp(ui = ui, server = server)
