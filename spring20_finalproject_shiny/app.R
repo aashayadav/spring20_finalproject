@@ -21,7 +21,6 @@ library(purrr)
 
 theme_set(theme_minimal(15))
 
-str(d)
 d <- import(here("spring20_finalproject_shiny", "ncsh.csv")) %>%
   map_at(c('child_sex', 'home_language', 'stories_songs', 'read', 'confident', 'how_well_demands', 'primary_cg_ed', 'ACE', 'state'), factor) %>%
   bind_rows() # for some reason we lost the factorization of variables when importing the data set, thus we re-factorized selected variables here.
