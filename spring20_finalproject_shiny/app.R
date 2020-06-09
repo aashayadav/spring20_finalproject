@@ -17,12 +17,14 @@ library(english)
 library(glue)
 library(here)
 library(ggplot2)
+library(purrr)
 
 theme_set(theme_minimal(15))
 
-
+str(d)
 d <- import(here("spring20_finalproject_shiny", "ncsh.csv")) %>%
-    map_df(factor) # for some reason we lost the factorization of variables when importing the data set, thus we re-factorized all variables here.
+  map_at(c('child_sex', 'home_language', 'stories_songs', 'read', 'confident', 'how_well_demands', 'primary_cg_ed', 'ACE', 'state'), factor) %>%
+  bind_rows() # for some reason we lost the factorization of variables when importing the data set, thus we re-factorized selected variables here.
 
 #################### space to load functions start ####################
 
@@ -34,9 +36,18 @@ prop_level <- function(x) {
 
 prop_level(d$home_language)
 
+# selecting factor vars in dataframe
+only_fct <- function(df) {
+  select_fct <- dplyr::select_if(df, is.factor)
+  select_fct
+}
+
+only_fct(d)
+
 # function that takes percentage of each var
 prop_var <- function(df, var) {
-    prop <- purrr::map(df, prop_level)
+    select_factor <- only_fct(df)
+    prop <- purrr::map(select_factor, prop_level)
     tibble(Category = names(prop[[var]]),
            Percentage = round(prop[[var]], 4)*100)
 }
@@ -56,16 +67,23 @@ ui <- fluidPage(
     p("[insert rubric and guide for where to find for Daniel]"),
     
     # Application title
-    navbarPage("Table",
+    navbarPage("Some name",
                ####################### Ale's Panel ######################
                tabPanel("Percentages by Variable",
                         selectInput("var",
                                     "Variable:",
                                     choices = c(
-                                        "None" = "none",
-                                        
-                                    ))
-                   
+                                      "Child sex" = "child_sex",
+                                      "Home language" = "home_language",
+                                      "Sing songs" = "stories_songs",
+                                      "Read" = "read",
+                                      "Confidence in child readiness" = "confident",
+                                      "Dealing with caregiving demands" = "how_well_demands",
+                                      "Caregiver education" = "primary_cg_ed",
+                                      "State" = "state"),
+                                    selected = "Child sex"),
+                        
+                        reactableOutput("tbl")
                    
                ), # this closes my tabPanel
                
@@ -133,8 +151,9 @@ server <- function(input, output) {
     
     
     ####################### Ale's Home ######################
-    output$distPlot1 <- renderTable({
-     
+    output$tbl <- renderReactable({
+      prop_var(d, input$var) %>% 
+        reactable::reactable()
     })
 
     
