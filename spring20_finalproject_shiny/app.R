@@ -51,14 +51,17 @@ prop_var(d, "read") %>%
 
 
 
+
 ########## Creating choices for tab3 ##########
-state_choices <- d$state
-names(state_choices) <- d$state
+state_choices <- graphs$state
+names(state_choices) <- graphs$state
 state_choices
 ######### End space for Creating choices for tab3 ##########
 
 
-####### ~!~ Define UI for application that draws a histogram ~!~ #######
+
+####### ~!~ Define UI for application ~!~ #######
+
 ui <- fluidPage(
     titlePanel("Our Shiny App!"),
     h2("National Survey of Children’s Health (NSCH) Data"),
@@ -67,6 +70,7 @@ ui <- fluidPage(
     p("[insert rubric and guide for where to find for Daniel] - code for this app can be found:", a(href="https://github.com/aashayadav/spring20_finalproject.git", "Github.")),
     # Application title
     navbarPage("Some name",
+
                ####################### Ale's Panel ######################
                tabPanel("Percentages by Variable",
                         selectInput("var",
@@ -89,8 +93,8 @@ ui <- fluidPage(
                
                ####################### Asha's Panel ######################
                tabPanel("Kindergarten readiness",
-                        inputPanel(
-                          selectInput('x', 'Choose the variable', choices = c("Child sex" = "child_sex",
+                    inputPanel(
+                        selectInput('x', 'Choose the variable', choices = c("Child sex" = "child_sex",
                                                             "Home language" = "home_language",
                                                             "Sing songs" = "stories_songs",
                                                             "Read" = "read"),
@@ -102,22 +106,18 @@ ui <- fluidPage(
                
                ####################### Mark's Panel ######################
                tabPanel("La Conspiración",
-                        h3("Confidence in School Preparedness Between Levels of Caregiver Education"),
-                        p("This visualization shows good stuff."),
+                h3("Confidence in School Preparedness Between Levels of Caregiver Education"),
+                      p("This visualization shows good stuff."),
 
                         # Show a plot of the generated distribution
                         mainPanel("Cool Plot", 
                                   fluidRow(
                                     column(4, 
                                       selectInput(
-                                        inputId = "state",
+                                        inputId = "submit",
                                         label = "Select State(s):",
                                         choices = state_choices,
                                         multiple = TRUE)),
-                                    column(4, 
-                                      actionButton( inputId = "submit",
-                                        label = "Apply Changes",
-                                        style = "margin:40px;" ))
                                     ),
                                   fluidRow(
                                     div(
@@ -132,16 +132,16 @@ ui <- fluidPage(
     ) # closes fluidPage
 
 
-####### ~!~ Define server logic required to create visualizations ~!~ #######
+####### ~!~ Define server logic ~!~ #######
 server <- function(input, output) {
     
-    ####################### Ale's Home ######################
+    ####################### Ale's Code ######################
     output$tbl <- renderReactable({
       prop_var(d, input$var) %>% 
         reactable::reactable()
     })
     
-    ####################### Asha's Home ######################
+    ####################### Asha's Code ######################
     output$distplot <- renderPlot({
       ggplot(d, aes_string(x = input$x)) +
           geom_bar(aes_string(fill= input$x)) +
@@ -150,34 +150,35 @@ server <- function(input, output) {
         labs(title = "Parents' confidence in child's kindergarten readiness")
       })
 
-    ####################### Mark's Home ######################
+    ####################### Mark's Code ######################
     graphs_d <- d %>%
       mutate(state == as.character(state)) %>% 
       group_by(state, primary_cg_ed, child_sex) %>%
       count(confident) %>% 
       mutate(prop_conf = round(n/sum(n), digits = 2))
         
-View(graphs_d)
-        
-      # create list of graphs
-      graphs <- eventReactive(input$submit, {
+    # purrr::nest %>% mutate() and parallel iteration with pmap() to create list of graphs
+    graphs <- eventReactive(input$submit, {
         
         graphs_d  %>%
         group_by(state) %>%
         nest() %>%
         mutate(plots = pmap(list(state, data),
-                            ~ggplot(..2, aes(primary_cg_ed, prop_conf, fill = confident)) +
-                              geom_bar(stat = "identity", position = "stack", alpha = .65) +
-                              geom_hline(yintercept = .5, linetype = "dashed", color = "darkgrey", size = .75) +
-                              coord_flip() +
-                              labs(x = "Parent'al's Highest Education",
-                                   y = glue("Proportion of Parents in {..1}"),
-                                   caption = ..1))) %>% 
+           ~ggplot(..2, aes(primary_cg_ed, prop_conf, fill = confident)) +
+            geom_bar(stat = "identity", position = "stack", alpha = .65) +
+            geom_hline(yintercept = .5, linetype = "dashed", color = "darkgrey", size = .75) +
+                        coord_flip() +
+                        labs(x = "Parental's Highest Education",
+                             y = glue("Proportion of Parents in {..1}")
+                            )
+                      )
+               ) %>% 
           arrange(state) %>% 
           pull(plots)
         })
 
-      # use purrr::iwalk to create a dynamic number of outputs
+      # {purrr} function outside the basic map family 
+      # purrr::iwalk to create dynamic number of outputs
       observeEvent(input$submit, {
         
         iwalk(graphs(), ~{
@@ -185,23 +186,18 @@ View(graphs_d)
           output[[output_name]] <- renderPlot(.x)
         })
       
-        # use renderUI to create a dynamic number of output ui elements
-        output$graphs_ui <- renderUI({
+      # renderUI to create dynamic number of output ui elements
+      output$graphs_ui <- renderUI({
           
           plots_list <- imap(graphs(), ~{
             tagList(
-              plotOutput(
-                outputId = paste0("plot_", .y)
-              ),
+              plotOutput(outputId = paste0("plot_", .y)),
               br()
-            )
-            
-          })
-          
-          tagList(plots_list)
-})
-})
-    }
+                    )                   }
+                            )
 
+                                  })
+                                  })
+    }
 # Run the application 
 shinyApp(ui = ui, server = server)
