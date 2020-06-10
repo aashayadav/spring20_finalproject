@@ -50,6 +50,14 @@ prop_var(d, "read") %>%
 #################### space to load functions end ####################
 
 
+
+########## Creating choices for tab3 ##########
+state_choices <- d$state
+names(state_choices) <- d$state
+state_choices
+######### End space for Creating choices for tab3 ##########
+
+
 ####### ~!~ Define UI for application that draws a histogram ~!~ #######
 ui <- fluidPage(
     titlePanel("Our Shiny App!"),
@@ -99,13 +107,29 @@ ui <- fluidPage(
 
                         # Show a plot of the generated distribution
                         mainPanel("Cool Plot", 
-                                  inputPanel(
-                                    selectInput("state", "Choose a state:", choices = c(
-                                      "Alabama" =1, "Alaska" = 2, "Arizona" =3, "Arkansas" =4, "California" =5, "Colorado" =6, "Connecticut" =7, "Delaware" =8, "District of Columbia" =9, "Florida" =10, "Georgia" =11, "Hawaii" =12, "Idaho"  =13, "Illinois" =14, "Indiana"  =15, "Iowa" =16, "Kansas" =17, "Kentucky" =18, "Louisiana" =19, "Maine"=20, "Maryland" =21, "Massachusetts" =22, "Michigan" =23, "Minnesota" =24, "Mississippi" =25, "Missouri" =26, "Montana" =27, "Nebraska" =28, "Nevada" =29, "New Hampshire"  =30, "New Jersey" =31, "New Mexico" =32, "New York" =33, "North Carolina" =34, "North Dakota" =35, "Ohio" =36, "Oklahoma" =37, "Oregon" =38, "Pennsylvania" =39, "Rhode Island" =40, "South Carolina" =41, "South Dakota" =42, "Tennessee" =43, "Texas" =44, "Utah" =45, "Vermont" =46,  "Virginia" =47, "Washington" =48, "West Virginia" =49, "Wisconsin"  =50, "Wyoming" = 51))
-                                  ),  imageOutput("distPlot2", width = "100%"))
+                                  fluidRow(
+                                    column(4, 
+                                      selectInput(
+                                        inputId = "state",
+                                        label = "Select State(s):",
+                                        choices = state_choices,
+                                        multiple = TRUE)),
+                                    column(4, 
+                                      actionButton( inputId = "submit",
+                                        label = "Apply Changes",
+                                        style = "margin:40px;" ))
+                                    ),
+                                  fluidRow(
+                                    div(
+                                      id = "plot-container",
+                                      uiOutput( outputId = "graphs_ui"
+                                      )
+                                    )
+                                  )
+                        )
                ) #closes tabPanel
-    )
-    )
+    ) #closes navbarPage
+    ) # closes fluidPage
 
 
 ####### ~!~ Define server logic required to create visualizations ~!~ #######
@@ -133,9 +157,12 @@ server <- function(input, output) {
       count(confident) %>% 
       mutate(prop_conf = round(n/sum(n), digits = 2))
         
-    output$distPlot2 <- renderImage({ 
+View(graphs_d)
+        
       # create list of graphs
-      graphs <- graphs_d  %>%
+      graphs <- eventReactive(input$submit, {
+        
+        graphs_d  %>%
         group_by(state) %>%
         nest() %>%
         mutate(plots = pmap(list(state, data),
@@ -145,20 +172,36 @@ server <- function(input, output) {
                               coord_flip() +
                               labs(x = "Parent'al's Highest Education",
                                    y = glue("Proportion of Parents in {..1}"),
-                                   caption = ..1)))
-      # Saving plots
-      # Creating directory to save plots
-      fs::dir_create(here::here("spring20_finalproject_shiny", "plots"))
-      # Creating file path
-      files <- stringr::str_replace_all(tolower(graphs$state), " ", "-")
-      paths <- here::here("spring20_finalproject_shiny", "plots", glue("conf-edlevel_{files}.png"))
-      # saving plots
-      walk2(paths, graphs$plots, ggsave,
-            width = 9.5, 
-            height = 6.5,
-            dpi = 500)
-    })
+                                   caption = ..1))) %>% 
+          arrange(state) %>% 
+          pull(plots)
+        })
 
-}
+      # use purrr::iwalk to create a dynamic number of outputs
+      observeEvent(input$submit, {
+        
+        iwalk(graphs(), ~{
+          output_name <- paste0("plot_", .y)
+          output[[output_name]] <- renderPlot(.x)
+        })
+      
+        # use renderUI to create a dynamic number of output ui elements
+        output$graphs_ui <- renderUI({
+          
+          plots_list <- imap(graphs(), ~{
+            tagList(
+              plotOutput(
+                outputId = paste0("plot_", .y)
+              ),
+              br()
+            )
+            
+          })
+          
+          tagList(plots_list)
+})
+})
+    }
+
 # Run the application 
 shinyApp(ui = ui, server = server)
