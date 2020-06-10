@@ -38,19 +38,19 @@ recode_missing_df <- function(df, missing_vals = c(90, 95, 99)) {
 # data cleaning
 d <- recode_missing_df(selected_data) %>%
   drop_na() %>% # dropping cases with missing data
-  mutate(confident = factor(confident),
+  mutate(confident = factor(confident, levels = c("1", "2", "3", "4")), # levels still not in order
          confident = fct_recode(confident,
                                 "Completely confident" = "1",
                                 "Mostly confident" = "2",
                                 "Somewhat confident" = "3",
                                 "Not at all confident" = "4"),
-         how_well_demands = factor(k8q30),
+         how_well_demands = factor(k8q30, levels = c("1", "2", "3", "4")),
          how_well_demands = fct_recode(how_well_demands,
                                        "Very well" = "1",
                                        "Somewhat well" = "2",
                                        "Not very well" = "3",
-                                       "Not at all" = "4"),
-         primary_cg_ed = factor(a1_grade),
+                                       "Not at all well" = "4"),
+         primary_cg_ed = factor(a1_grade, levels = c("1", "2", "3", "4", "5", "6", "7", "8", "9")), # levels still not in order
          primary_cg_ed = fct_recode(primary_cg_ed,
                                     "8th grade or less" = "1",
                                     "9th-12th grade; No diploma" = "2",
@@ -61,12 +61,12 @@ d <- recode_missing_df(selected_data) %>%
                                     "Bachelor’s Degree" = "7",
                                     "Master’s Degree" = "8",
                                     "Doctorate" = "9"),
-         home_language = factor(hhlanguage),
+         home_language = factor(hhlanguage, levels = c("1", "2", "3")), # levels still not in order
          home_language = fct_recode(home_language,
                                     "English" = "1",
                                     "Spanish" = "2",
                                     "Other" = "3"),
-         child_sex = factor(sc_sex),
+         child_sex = factor(sc_sex, levels = c("1", "2")), # levels still not in order
          child_sex = fct_recode(child_sex,
                                 "Male" = "1",
                                 "Female" = "2"),
@@ -75,8 +75,8 @@ d <- recode_missing_df(selected_data) %>%
          ACE = fct_recode(ACE,
                           "Exp 1 ACE" = "2",
                           "Exp 2 ACE" = "3"),
-         stories_songs = factor(k6q61_r),
-         read = factor(k6q60_r)) %>% 
+         stories_songs = factor(k6q61_r, levels = c("1", "2", "3", "4")),
+         read = factor(k6q60_r, levels = c("1", "2", "3", "4"))) %>% 
   mutate_at(c("stories_songs","read"), ~(fct_recode(., 
                                                     "0 days" = "1",
                                                     "1-3 days" = "2",
@@ -85,11 +85,10 @@ d <- recode_missing_df(selected_data) %>%
   select(hhid, child_sex, child_age, home_language, stories_songs, read, confident, how_well_demands, primary_cg_ed, ACE, state)
 
 
-str(d)
-# Export to csv for shiny app use
-rio::export(d, here("spring20_finalproject_shiny", "ncsh.rda"))
-d <- rio::import(here("spring20_finalproject_shiny", "ncsh.rda"))
 
-factorize(d)
-str(d)
+# Export to csv for shiny app use
+rio::export(d, here("spring20_finalproject_shiny", "ncsh.csv"))
+#d <- rio::import(here("spring20_finalproject_shiny", "ncsh.csv"))
+
+
 
