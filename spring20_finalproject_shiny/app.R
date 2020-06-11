@@ -61,7 +61,7 @@ ui <- fluidPage(
     titlePanel("Our Shiny App!"),
     h2("National Survey of Children’s Health (NSCH) Data"),
     p("The purpose of this app is to allow the user to examine the National Survey of Children's Health data, specifically looking at the relationships between parent expectations for school readiness and reading behaviors among levels of parental education"),
-    p("The data used for this app is publicly available on the", a(href="https://www.census.gov/programs-surveys/nsch/data.html", "US Census Bureau's website.")),
+    p("The data used for this app are publicly available on the", a(href="https://www.census.gov/programs-surveys/nsch/data.html", "US Census Bureau's website.")),
     p("Code for this app can be found on our", a(href="https://github.com/aashayadav/spring20_finalproject.git", "Github repo.")),
     # Application title
     navbarPage(" ",
