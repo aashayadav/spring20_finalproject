@@ -26,15 +26,11 @@ prop_level <- function(x) {
     prop
 }
 
-prop_level(d$home_language)
-
 # selecting factor vars in dataframe
 only_fct <- function(df) {
   select_fct <- dplyr::select_if(df, is.factor)
   select_fct
 }
-
-only_fct(d)
 
 # function that takes percentage of each var
 prop_var <- function(df, var) {
@@ -51,7 +47,6 @@ prop_var(d, "read") %>%
 
 
 
-
 ########## Creating choices for tab3 ##########
 state_choices <- graphs$state
 names(state_choices) <- graphs$state
@@ -65,11 +60,11 @@ state_choices
 ui <- fluidPage(
     titlePanel("Our Shiny App!"),
     h2("National Survey of Children’s Health (NSCH) Data"),
-    p("The purpose of this app is to alow those who are interested in examining the National Survey of Children's Health data, specifically looking at the relationships between parent expectations for school readiness and reading behaviors among levels of parental education"),
+    p("The purpose of this app is to allow the user to examine the National Survey of Children's Health data, specifically looking at the relationships between parent expectations for school readiness and reading behaviors among levels of parental education"),
     p("The data used for this app is publicly available on the", a(href="https://www.census.gov/programs-surveys/nsch/data.html", "US Census Bureau's website.")),
-    p("[insert rubric and guide for where to find for Daniel] - code for this app can be found:", a(href="https://github.com/aashayadav/spring20_finalproject.git", "Github.")),
+    p("Code for this app can be found on our", a(href="https://github.com/aashayadav/spring20_finalproject.git", "Github repo.")),
     # Application title
-    navbarPage("Some name",
+    navbarPage(" ",
 
                ####################### Ale's Panel ######################
                tabPanel("Percentages by Variable",
@@ -88,7 +83,7 @@ ui <- fluidPage(
                         
                         reactableOutput("tbl")
                    
-               ), # this closes my tabPanel
+               ), # closes Ale's tabPanel
                
                
                ####################### Asha's Panel ######################
@@ -105,12 +100,12 @@ ui <- fluidPage(
                
                
                ####################### Mark's Panel ######################
-               tabPanel("La Conspiración",
-                h3("Confidence in School Preparedness Between Levels of Caregiver Education"),
-                      p("This visualization shows good stuff."),
+               tabPanel("Readiness by State",
+                h3("Examining Confidence Between States"),
+                      p("Note: Takes a minute to produce all plots; I couldn't get the action button to limit which plots are displayed. And for some reason the percentages are off."),
 
                         # Show a plot of the generated distribution
-                        mainPanel("Cool Plot", 
+                        mainPanel(" ", 
                                   fluidRow(
                                     column(4, 
                                       selectInput(
@@ -118,7 +113,15 @@ ui <- fluidPage(
                                         label = "Select State(s):",
                                         choices = state_choices,
                                         multiple = TRUE)),
-                                    ),
+                                  column(
+                                    4, 
+                                    actionButton(
+                                      inputId = "submit",
+                                      label = "Update",
+                                      style = "margin:40px;"
+                                    )
+                                  )
+                        ),
                                   fluidRow(
                                     div(
                                       id = "plot-container",
@@ -127,8 +130,8 @@ ui <- fluidPage(
                                     )
                                   )
                         )
-               ) #closes tabPanel
-    ) #closes navbarPage
+               ) #closes Mark's tab panel
+    ) # closes navbarPage
     ) # closes fluidPage
 
 
@@ -155,8 +158,8 @@ server <- function(input, output) {
       mutate(state == as.character(state)) %>% 
       group_by(state, primary_cg_ed, child_sex) %>%
       count(confident) %>% 
-      mutate(prop_conf = round(n/sum(n), digits = 2))
-        
+      mutate(percent_conf = round(n/sum(n), digits = 4)*100)
+  
     # purrr::nest %>% mutate() and parallel iteration with pmap() to create list of graphs
     graphs <- eventReactive(input$submit, {
         
@@ -164,12 +167,13 @@ server <- function(input, output) {
         group_by(state) %>%
         nest() %>%
         mutate(plots = pmap(list(state, data),
-           ~ggplot(..2, aes(primary_cg_ed, prop_conf, fill = confident)) +
+           ~ggplot(..2, aes(primary_cg_ed, percent_conf, fill = confident)) +
             geom_bar(stat = "identity", position = "stack", alpha = .65) +
             geom_hline(yintercept = .5, linetype = "dashed", color = "darkgrey", size = .75) +
                         coord_flip() +
-                        labs(x = "Parental's Highest Education",
-                             y = glue("Proportion of Parents in {..1}")
+                        labs(title = glue("{..1} Parents' Confidence in Child's Kindergarten Readiness"),
+                             x = "Parent's Highest Education Level",
+                             y = glue("Percentage of Parents in {..1}")
                             )
                       )
                ) %>% 
