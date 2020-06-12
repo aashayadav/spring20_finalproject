@@ -10,11 +10,11 @@ library(glue)
 library(here)
 library(ggplot2)
 library(purrr)
-
+library(patchwork)
 theme_set(theme_minimal(16))
 
 d <- import(here("spring20_finalproject_shiny", "ncsh.csv")) %>%
-  map_at(c('child_sex', 'home_language', 'stories_songs', 'read', 'confident', 'how_well_demands', 'primary_cg_ed', 'ACE', 'state'), factor) %>%
+  map_at(c('child_sex', 'home_language', 'stories_songs', 'read', 'confident', 'how_well_demands', 'primary_cg_ed', 'ACE'), factor) %>%
   bind_rows() # for some reason we lost the factorization of variables when importing the data set, thus we re-factorized selected variables here.
 
 
@@ -48,10 +48,20 @@ prop_var(d, "read") %>%
 
 
 ########## Creating choices for tab3 ##########
-state_choices <- graphs$state
-names(state_choices) <- graphs$state
+state_choices <- as.character(d$state)
+names(state_choices) <- state_choices
 state_choices
 ######### End space for Creating choices for tab3 ##########
+
+### Create graphing data
+# you only want to do this once, so keep it out of the server
+graphs_d <- d %>%
+  mutate(state == as.character(state)) %>% 
+  group_by(state, primary_cg_ed, child_sex) %>%
+  count(confident) %>% 
+  group_by(state) %>% 
+  mutate(percent_conf = round(n/sum(n), digits = 4)*100)
+###
 
 
 
@@ -101,37 +111,22 @@ ui <- fluidPage(
                
                ####################### Mark's Panel ######################
                tabPanel("Readiness by State",
-                h3("Examining Confidence Between States"),
-                      p("Note: Takes a minute to produce all plots; I couldn't get the action button to limit which plots are displayed. And for some reason the percentages are off."),
+                        h3("Examining Confidence Between States"),
+                        p("Note: Takes a minute to produce all plots; I couldn't get the action button to limit which plots are displayed. And for some reason the percentages are off."),
+                       # Show a plot of the generated distribution
+                         selectInput(
+                           inputId = "submit",
+                           label = "Select State(s):",
+                           choices = state_choices,
+                           selected = c("Oregon", "Washington", "California"),
+                           multiple = TRUE),
+                         
+                         div(style = "overflow-y: scroll;",
+                           plotOutput("state_plot", height = "1000px")
+                         )
 
-                        # Show a plot of the generated distribution
-                        mainPanel(" ", 
-                                  fluidRow(
-                                    column(4, 
-                                      selectInput(
-                                        inputId = "submit",
-                                        label = "Select State(s):",
-                                        choices = state_choices,
-                                        multiple = TRUE)),
-                                  column(
-                                    4, 
-                                    actionButton(
-                                      inputId = "submit",
-                                      label = "Update",
-                                      style = "margin:40px;"
-                                    )
-                                  )
-                        ),
-                                  fluidRow(
-                                    div(
-                                      id = "plot-container",
-                                      uiOutput( outputId = "graphs_ui"
-                                      )
-                                    )
-                                  )
-                        )
                ) #closes Mark's tab panel
-    ) # closes navbarPage
+      ) # closes navbarPage
     ) # closes fluidPage
 
 
@@ -154,54 +149,32 @@ server <- function(input, output) {
       })
 
     ####################### Mark's Code ######################
-    graphs_d <- d %>%
-      mutate(state == as.character(state)) %>% 
-      group_by(state, primary_cg_ed, child_sex) %>%
-      count(confident) %>% 
-      mutate(percent_conf = round(n/sum(n), digits = 4)*100)
-  
-    # purrr::nest %>% mutate() and parallel iteration with pmap() to create list of graphs
-    graphs <- eventReactive(input$submit, {
-        
-        graphs_d  %>%
+    output$state_plot <- renderPlot({
+      out <- graphs_d  %>%
+        filter(state %in% input$submit) %>% 
         group_by(state) %>%
         nest() %>%
-        mutate(plots = pmap(list(state, data),
-           ~ggplot(..2, aes(primary_cg_ed, percent_conf, fill = confident)) +
-            geom_bar(stat = "identity", position = "stack", alpha = .65) +
-            geom_hline(yintercept = .5, linetype = "dashed", color = "darkgrey", size = .75) +
-                        coord_flip() +
-                        labs(title = glue("{..1} Parents' Confidence in Child's Kindergarten Readiness"),
-                             x = "Parent's Highest Education Level",
-                             y = glue("Percentage of Parents in {..1}")
-                            )
-                      )
-               ) %>% 
-          arrange(state) %>% 
-          pull(plots)
-        })
-
-      # {purrr} function outside the basic map family 
-      # purrr::iwalk to create dynamic number of outputs
-      observeEvent(input$submit, {
+        mutate(plots = map2(state, data,
+                            ~ggplot(.y, aes(primary_cg_ed, percent_conf, fill = confident)) +
+                              geom_bar(stat = "identity", position = "stack", alpha = .65) +
+                              geom_hline(yintercept = .5, linetype = "dashed", color = "darkgrey", size = .75) +
+                              coord_flip() +
+                              labs(title = glue("{.x} "),
+                                   
+                                   x = "",
+                                   y = glue("Percentage of Parents in {.x}")
+                              )
+          )
+        ) %>% 
+        arrange(state) 
         
-        iwalk(graphs(), ~{
-          output_name <- paste0("plot_", .y)
-          output[[output_name]] <- renderPlot(.x)
-        })
-      
-      # renderUI to create dynamic number of output ui elements
-      output$graphs_ui <- renderUI({
-          
-          plots_list <- imap(graphs(), ~{
-            tagList(
-              plotOutput(outputId = paste0("plot_", .y)),
-              br()
-                    )                   }
-                            )
-
-                                  })
-                                  })
-    }
+      reduce(out$plots, `/`) +
+        plot_layout(guides = 'collect') +
+        plot_annotation(title = "Parents' Confidence in Child's Kindergarten Readiness",
+                        subtitle = "Bars displayed by parents' educational attainment level")
+    })
+}
+    #
 # Run the application 
 shinyApp(ui = ui, server = server)
+

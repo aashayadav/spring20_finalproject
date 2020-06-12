@@ -23,7 +23,7 @@ selected_data <- final_data %>%
 ## Function 1 (to recode missing data) and modify_*
 
 # vector with missing values in my dataset
-missing_vals <- c(90, 95, 99)
+# missing_vals <- c(90, 95, 99) # This is not relaly needed because you have it as your default values
 
 # function that returns true if values in vector are equal to missing_vals. The function takes a vector x, and specified values of missing data
 recode_missing <- function(x, missing_vals = c(90, 95, 99)) {
@@ -88,17 +88,23 @@ d <- recode_missing_df(selected_data) %>%
 ## function 2 (to create plots) -- add this to the shiny app so peep can interact and change the variables from a drop down menu. Needs further customization.
 
 bar_plot <- function(df, x) {
+  
+  # use `any` to test if any are TRUE (get a single logical in return)
+  # Also use `is.numeric`, not `as.numeric` 
+  # (you want to test if it is numeric, not change it to numeric)
+  # Also, you're expecting it to NOT be numeric, so stop if any are
+  if(any(is.numeric(pull(df, {{x}})))) { 
+    stop() # Where's the error message?
+  }
+  # Test before you plot
   plot_graph <- ggplot(df, aes({{x}})) +
     geom_bar(aes(fill = {{x}}), show.legend = FALSE) +
     coord_flip()
   
-  if(!as.numeric(pull(df, {{x}}))) {
-    stop()
-  }
-  else{
-    plot_graph
-  }
-  return(plot_graph)
+  # the if above will only be evaluated if it's true, so no need for an else
+  # I would also reserve `return` for when you're exiting a function early
+  # otherwise just output the objet
+  plot_graph 
 }
 
 bar_plot(d, read) +
@@ -115,11 +121,9 @@ bar_plot(d, read) +
   facet_wrap(~confident)
 
 plot1_df <- d %>%
-  group_by(state, primary_cg_ed) %>%
-  count(confident) %>% 
-  mutate(prop_conf = round(n/sum(n), digits = 2)) %>%  
-  mutate(label =
-           glue("NCES Data from {str_to_title(state)}"))
+  count(state, primary_cg_ed, confident) %>% 
+  mutate(prop_conf = round(n/sum(n), digits = 2),
+         label = glue("NCES Data from {str_to_title(state)}"))
 
 plot1 <- plot1_df  %>%
   group_by(state, label) %>%
@@ -203,13 +207,13 @@ prop_var(d, "read") %>%
 
 # how to translate to shiny? 
 # in ui
-selectInput("var", "Select Variable", 
-            choices = c("read", "confidence", "etc."))
-
-reactableOutput("tbl")
+# selectInput("var", "Select Variable", 
+#             choices = c("read", "confidence", "etc."))
+# 
+# reactableOutput("tbl")
 
 # in your server
-output$tbl <- renderReactable({
-  prop_df(d, input$var) %>% 
-    reactable::reactable()
-})
+# output$tbl <- renderReactable({
+#   prop_df(d, input$var) %>% 
+#     reactable::reactable()
+# })
