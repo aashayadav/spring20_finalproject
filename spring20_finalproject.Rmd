@@ -121,6 +121,23 @@ d <- recode_missing_df(selected_data) %>%
                                               "4-6 days" = "3",
                                               "Every day" = "4"))) %>%
   select(hhid, child_sex, child_age, home_language, stories_songs, read, confident, how_well_demands, primary_cg_ed, ACE, state)
+
+
+#Akhila's function suggestion:
+
+d1 <- recode_missing_df(selected_data) %>%
+ drop_na() %>% 
+  mutate_at(vars("k6q61_r":"k6q60_r"), 
+            funs(factor(.,
+                        levels = c(
+                          "0 days",
+                          "1-3 days",
+                          "4-6 days",
+                          "Everyday"),
+                        ordered = TRUE)))
+
+
+
 ```
 
 
